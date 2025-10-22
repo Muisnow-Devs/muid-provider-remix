@@ -1,0 +1,139 @@
+import { betterAuth, User } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { passkey } from "better-auth/plugins/passkey";
+import {
+    lastLoginMethod,
+    admin,
+    username,
+    multiSession,
+    jwt,
+    emailOTP,
+} from "better-auth/plugins";
+import prisma from "./prisma";
+import logger from "./logger";
+import { enqueue } from "./bull";
+import { ProcessType } from "./tasks/ProcessData";
+import emailVerificationTemplate, {
+    EmailType,
+} from "./templates/emailVerification";
+import { SocialProviders } from "better-auth/social-providers";
+
+const socialProviders: SocialProviders = {
+    google: {
+        clientId: process.env.AUTH_GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.AUTH_GOOGLE_CLIENT_SECRET!,
+        enabled: true,
+    },
+};
+
+export const auth = betterAuth({
+    appName: "MuID",
+    database: prismaAdapter(prisma, {
+        provider: "postgresql",
+    }),
+    emailAndPassword: {
+        enabled: false,
+    },
+    socialProviders,
+    plugins: [
+        passkey(),
+        lastLoginMethod(),
+        admin(),
+        username(),
+        multiSession(),
+        emailOTP({ sendVerificationOTP }),
+    ],
+    secret: process.env.BETTER_AUTH_SECRET!,
+    emailVerification: { sendVerificationEmail },
+    user: {
+        deleteUser: {
+            enabled: true,
+            sendDeleteAccountVerification,
+        },
+    },
+});
+
+async function sendDeleteAccountVerification({
+    user,
+    url,
+    token,
+}: {
+    user: User;
+    url: string;
+    token: string;
+}) {
+    const name = user.name || user.email.split("@")[0];
+    logger.info(
+        `[Delete Account] Sending delete account verification email to ${user.email}: ${token}`
+    );
+
+    const subject = "Verify your account deletion";
+    enqueue({
+        type: ProcessType.EmailSender,
+        payload: {
+            to: user.email,
+            subject,
+            body: await emailVerificationTemplate({
+                name,
+                heading: subject,
+                action: { type: EmailType.Deletion, url },
+            }),
+        },
+    });
+}
+
+async function sendVerificationEmail({
+    user,
+    url,
+    token,
+}: {
+    user: User;
+    url: string;
+    token: string;
+}) {
+    const name = user.name || user.email.split("@")[0];
+    logger.info(
+        `[Email Verification] Sending verification email to ${user.email}: ${token}`
+    );
+
+    const subject = "Verify your email address";
+    enqueue({
+        type: ProcessType.EmailSender,
+        payload: {
+            to: user.email,
+            subject,
+            body: await emailVerificationTemplate({
+                name,
+                heading: subject,
+                action: { type: EmailType.Verify, url },
+            }),
+        },
+    });
+}
+
+async function sendVerificationOTP({
+    email,
+    otp,
+    type,
+}: {
+    email: string;
+    otp: string;
+    type: "sign-in" | "email-verification" | "forget-password";
+}) {
+    logger.info(`[Email OTP] Sending ${type} OTP to ${email}`);
+
+    const subject =
+        type === "sign-in" ? "Your login OTP" : "Your verification OTP";
+    enqueue({
+        type: ProcessType.EmailSender,
+        payload: {
+            to: email,
+            subject,
+            body: await emailVerificationTemplate({
+                name: email,
+                heading: subject,
+                action: { type: EmailType.OTP, otp },
+            }),
+        },
+    });
+}
