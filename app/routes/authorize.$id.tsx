@@ -22,6 +22,7 @@ import { UserAvatar } from "@daveyplate/better-auth-ui";
 import { AccordionItem } from "@radix-ui/react-accordion";
 import { Link2Icon } from "lucide-react";
 import {
+    isRouteErrorResponse,
     LoaderFunctionArgs,
     redirect,
     redirectDocument,
@@ -33,7 +34,7 @@ import {
 export async function loader({ params, request }: LoaderFunctionArgs) {
     const { id } = params;
     if (!id) {
-        throw new Response("Missing id", { status: 400 });
+        throw new Response("Missing interaction id", { status: 400 });
     }
 
     const interaction = await provider.Interaction.find(id);
@@ -97,12 +98,12 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     const missingOIDCScopes = interaction.prompt.details?.missingOIDCScope as
         | string[]
         | undefined;
-    
+
     const missingResourceScopes = interaction.prompt.details
         ?.missingResourceScopes as
         | { [indicator: string]: string[] }
         | undefined;
-    
+
     const missingScopes = [
         ...(missingOIDCScopes || []),
         ...(missingResourceScopes
@@ -158,7 +159,7 @@ export async function action({ params: pm, request }: LoaderFunctionArgs) {
             select: { id: true },
         })
         .then((g) => g?.id);
-    
+
     const grant =
         (grantId ? await provider.Grant.find(grantId) : null) ??
         new provider.Grant({
@@ -177,7 +178,7 @@ export async function action({ params: pm, request }: LoaderFunctionArgs) {
     const gi = await grant.save();
 
     await prisma.oauthConsent.delete({
-        where: { id: grantId }
+        where: { id: grantId },
     });
 
     interaction.result = {
@@ -316,4 +317,34 @@ export default function AuthorizePage() {
 
 export function ErrorBoundary() {
     const error = useRouteError();
+
+    return (
+        <div className="min-h-dvh w-full flex items-center justify-center p-4">
+            <Card className="w-full max-w-lg">
+                <CardHeader>
+                    <CardTitle>Authorize failed</CardTitle>
+                    <CardDescription>
+                        Unable to authorize the OAuth client.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p>
+                        The OAuth client is missing or invalid. If you believe
+                        this is an error, contact the application owner. Below
+                        is more information about the error.
+                    </p>
+                    <pre className="mt-4 rounded bg-gray-100 dark:bg-gray-800 p-4 overflow-x-auto text-sm">
+                        {isRouteErrorResponse(error) &&
+                            (error.data || "Unknown error")}
+                    </pre>
+                </CardContent>
+                <CardFooter className="gap-2 flex flex-col">
+                    <Button className="w-full">Go to Home</Button>
+                    {/* <Button variant="outline" className="w-full">
+                        Contact Support
+                    </Button> */}
+                </CardFooter>
+            </Card>
+        </div>
+    );
 }
