@@ -189,3 +189,14 @@ model OidcModel {
   @@index([expiresAt])
   @@map("oidcModel")
 }
+
+// For custom scopes
+model OidcScope {
+  id          String   @id // scope as id
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@map("oidcScope")
+}

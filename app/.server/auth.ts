@@ -6,13 +6,11 @@ import {
     admin,
     username,
     multiSession,
-    jwt,
     emailOTP,
 } from "better-auth/plugins";
 import prisma from "./prisma";
 import logger from "./logger";
-import { enqueue } from "./bull";
-import { ProcessType } from "./tasks/ProcessData";
+import { enqueue } from "./queue/default";
 import emailVerificationTemplate, {
     EmailType,
 } from "./templates/emailVerification";
@@ -69,7 +67,7 @@ async function sendDeleteAccountVerification({
 
     const subject = "Verify your account deletion";
     enqueue({
-        type: ProcessType.EmailSender,
+        type: "email.sent",
         payload: {
             to: user.email,
             subject,
@@ -98,7 +96,7 @@ async function sendVerificationEmail({
 
     const subject = "Verify your email address";
     enqueue({
-        type: ProcessType.EmailSender,
+        type: "email.sent",
         payload: {
             to: user.email,
             subject,
@@ -125,7 +123,7 @@ async function sendVerificationOTP({
     const subject =
         type === "sign-in" ? "Your login OTP" : "Your verification OTP";
     enqueue({
-        type: ProcessType.EmailSender,
+        type: "email.sent",
         payload: {
             to: email,
             subject,

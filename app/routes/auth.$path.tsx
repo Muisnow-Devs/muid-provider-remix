@@ -1,5 +1,5 @@
 import { AuthView } from "@daveyplate/better-auth-ui";
-import Logo from "@/components/logo/main_black.svg?react";
+import Logo from "@/components/logo/main.svg?react";
 import { Link, useParams } from "react-router";
 
 export default function AuthPage() {

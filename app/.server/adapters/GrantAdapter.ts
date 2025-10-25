@@ -43,14 +43,6 @@ class GrantAdapter implements Adapter {
     private extractScopes(payload: AdapterPayload): string {
         const scopes: string[] = [];
 
-        // Extract from openid.scope
-        if (payload.openid && typeof payload.openid === 'object' && 'scope' in payload.openid) {
-            const openidScope = (payload.openid as Record<string, unknown>).scope;
-            if (typeof openidScope === 'string') {
-                scopes.push(openidScope);
-            }
-        }
-
         // Extract from resources
         if (payload.resources && typeof payload.resources === 'object') {
             Object.values(payload.resources).forEach(scope => {
@@ -80,6 +72,9 @@ class GrantAdapter implements Adapter {
             openid: {
                 scope: openidScopes.join(' '),
             },
+            resources: {
+                "https://api.muisnowdevs.one": scopes.join(' '),
+            }
         };
     }
 

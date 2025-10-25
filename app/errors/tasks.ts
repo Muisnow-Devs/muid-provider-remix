@@ -1,8 +1,10 @@
-import { ProcessType } from "@/.server/tasks/ProcessData";
+import { AppEventMap } from "@/.server/queue/tasks/ProcessData";
 
 class TaskNotMatch extends Error {
-    constructor(expected: ProcessType, received: ProcessType) {
-        super(`Task type mismatch: expected ${ProcessType[expected]}, but received ${ProcessType[received]}`);
+    constructor(expected: keyof AppEventMap, received: keyof AppEventMap) {
+        super(
+            `Task type mismatch: expected ${expected}, but received ${received}`
+        );
         this.name = "TaskNotMatch";
     }
 }

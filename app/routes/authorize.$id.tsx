@@ -2,6 +2,11 @@ import { auth } from "@/.server/auth";
 import provider from "@/.server/oidc";
 import prisma from "@/.server/prisma";
 import { authClient } from "@/components/auth-client";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -14,6 +19,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { getEpochTime } from "@/lib/utils";
 import { UserAvatar } from "@daveyplate/better-auth-ui";
+import { AccordionItem } from "@radix-ui/react-accordion";
 import { Link2Icon } from "lucide-react";
 import {
     LoaderFunctionArgs,
@@ -21,14 +27,8 @@ import {
     redirectDocument,
     useFetcher,
     useLoaderData,
+    useRouteError,
 } from "react-router";
-
-const ScopeNames: Record<string, string> = {
-    openid: "Your identity in MuID (OpenID)",
-    profile: "Your basic profile information",
-    email: "Your email address",
-    offline_access: "Allow this app to access your data anytime",
-};
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
     const { id } = params;
@@ -39,6 +39,28 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     const interaction = await provider.Interaction.find(id);
     if (!interaction) {
         throw new Response("Interaction not found", { status: 404 });
+    }
+
+    const scopes = (
+        (interaction.params.scope as string) ?? "openid profile email"
+    ).split(" ");
+
+    const scopeData = await prisma.oidcScope.findMany({
+        where: { id: { in: scopes } },
+        select: { name: true, description: true, id: true },
+    });
+
+    const requestedScopes = scopes;
+    const foundScopes = scopeData.map((s) => s.id);
+    const invalidScopes = requestedScopes.filter(
+        (s) => !foundScopes.includes(s)
+    );
+
+    if (invalidScopes.length) {
+        throw new Response(
+            `Invalid scopes requested: ${invalidScopes.join(", ")}`,
+            { status: 400 }
+        );
     }
 
     const session = await auth.api.getSession({
@@ -72,13 +94,28 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         throw new Response("Client not found", { status: 404 });
     }
 
+    const missingOIDCScopes = interaction.prompt.details?.missingOIDCScope as
+        | string[]
+        | undefined;
+    
+    const missingResourceScopes = interaction.prompt.details
+        ?.missingResourceScopes as
+        | { [indicator: string]: string[] }
+        | undefined;
+    
+    const missingScopes = [
+        ...(missingOIDCScopes || []),
+        ...(missingResourceScopes
+            ? Object.values(missingResourceScopes).flat()
+            : []),
+    ];
+
     return {
         client: {
             name: client.name || client.clientId!,
             logo: client.icon || undefined,
-            scopes: (
-                (interaction.params.scope as string) ?? "openid profile email"
-            ).split(" "),
+            scopes: scopeData,
+            missing: missingScopes,
         },
     };
 }
@@ -108,27 +145,26 @@ export async function action({ params: pm, request }: LoaderFunctionArgs) {
 
     const {
         prompt: { name, details: promptDetails },
-        grantId,
         session,
         params,
     } = interaction;
 
+    const grantId = await prisma.oauthConsent
+        .findFirst({
+            where: {
+                userId: interaction.session?.accountId!,
+                clientId: interaction.params.client_id! as string,
+            },
+            select: { id: true },
+        })
+        .then((g) => g?.id);
+    
     const grant =
         (grantId ? await provider.Grant.find(grantId) : null) ??
         new provider.Grant({
             accountId: interaction.session?.accountId!,
             clientId: interaction.params.client_id! as string,
         });
-
-    if (promptDetails?.missingOIDCScope) {
-        grant.addOIDCScope(
-            (promptDetails.missingOIDCScope as string[]).join(" ")
-        );
-    }
-
-    if (promptDetails?.missingOIDCClaims) {
-        grant.addOIDCClaims(promptDetails.missingOIDCClaims as string[]);
-    }
 
     if (promptDetails?.missingResourceScopes) {
         for (const [indicator, scopes] of Object.entries(
@@ -139,6 +175,10 @@ export async function action({ params: pm, request }: LoaderFunctionArgs) {
     }
 
     const gi = await grant.save();
+
+    await prisma.oauthConsent.delete({
+        where: { id: grantId }
+    });
 
     interaction.result = {
         ...interaction.lastSubmission,
@@ -159,6 +199,13 @@ export default function AuthorizePage() {
         formData.append("authorize", authorize ? "true" : "false");
         fetcher.submit(formData, { method: "post" });
     }
+
+    const granted = data.client.scopes.filter(
+        (s) => !data.client.missing.includes(s.id)
+    );
+    const missing = data.client.scopes.filter((s) =>
+        data.client.missing.includes(s.id)
+    );
 
     return (
         <div className="min-h-dvh w-full flex items-center justify-center p-4">
@@ -193,15 +240,46 @@ export default function AuthorizePage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ul className="list-disc pl-5 space-y-1">
-                        {data.client.scopes.map((s) => (
-                            <li key={s} className="text-sm">
-                                <span className="font-medium">
-                                    {ScopeNames[s] || s}
-                                </span>
-                            </li>
+                    <Accordion
+                        type="multiple"
+                        className="mb-4 font-medium flex flex-col gap-2"
+                    >
+                        {missing.map((s) => (
+                            <AccordionItem value={s.id} key={s.id}>
+                                <AccordionTrigger>{s.name}</AccordionTrigger>
+                                <AccordionContent>
+                                    <p className="text-sm text-muted-foreground">
+                                        {s.description}
+                                    </p>
+                                </AccordionContent>
+                            </AccordionItem>
                         ))}
-                    </ul>
+                    </Accordion>
+
+                    {granted.length > 0 && (
+                        <>
+                            <h3 className="font-semibold mb-2 italic text-zinc-500">
+                                You have already granted:
+                            </h3>
+                            <Accordion
+                                type="multiple"
+                                className="mb-4 font-medium flex flex-col gap-2"
+                            >
+                                {granted.map((s) => (
+                                    <AccordionItem value={s.id} key={s.id}>
+                                        <AccordionTrigger>
+                                            {s.name}
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                            <p className="text-sm text-muted-foreground">
+                                                {s.description}
+                                            </p>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                ))}
+                            </Accordion>
+                        </>
+                    )}
 
                     {/* {error && (
                         <p className="text-sm text-destructive mt-4">{error}</p>
@@ -234,4 +312,8 @@ export default function AuthorizePage() {
             </Card>
         </div>
     );
+}
+
+export function ErrorBoundary() {
+    const error = useRouteError();
 }

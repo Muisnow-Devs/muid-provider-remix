@@ -36,7 +36,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <Meta />
                 <Links />
             </head>
-            <body>
+            <body className="dark bg-neutral-950!">
                 <Providers>{children}</Providers>
                 <ScrollRestoration />
                 <Scripts />
