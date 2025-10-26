@@ -2,6 +2,7 @@ import { auth } from "@/.server/auth";
 import provider from "@/.server/oidc";
 import prisma from "@/.server/prisma";
 import { commitCSRFToken, validateCSRFToken } from "@/.server/security";
+import { ApplicationIcon, ApplicationScopes } from "@/components/application";
 import { authClient, redirectToLogin } from "@/components/auth-client";
 import {
     Accordion,
@@ -133,13 +134,12 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
     return [
         {
-            title:
-                loaderData
-                    ? `Authorize ${loaderData.client.name} - MuID`
-                    : "Authorize Error - MuID"
+            title: loaderData
+                ? `Authorize ${loaderData.client.name} - MuID`
+                : "Authorize Error - MuID",
         },
     ];
-}
+};
 
 export async function action({ params: pm, request }: LoaderFunctionArgs) {
     const formData = await request.formData();
@@ -234,21 +234,10 @@ export default function AuthorizePage() {
             <Card className="w-full max-w-lg">
                 <CardHeader className="text-center pb-4">
                     <div className="flex items-center mb-2 gap-4 justify-center">
-                        {data.client.logo ? (
-                            <img
-                                src={data.client.logo}
-                                alt={data.client.name}
-                                width={48}
-                                height={48}
-                                className="w-12 h-12 rounded-md object-cover"
-                            />
-                        ) : (
-                            <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center">
-                                <span className="text-lg font-semibold">
-                                    {data.client.name.charAt(0).toUpperCase()}
-                                </span>
-                            </div>
-                        )}
+                        <ApplicationIcon
+                            icon={data.client.logo || null}
+                            name={data.client.name}
+                        />
                         <Link2Icon />
                         <UserAvatar user={user.data?.user} size="xl" />
                     </div>
@@ -262,44 +251,14 @@ export default function AuthorizePage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Accordion
-                        type="multiple"
-                        className="mb-4 font-medium flex flex-col gap-2"
-                    >
-                        {missing.map((s) => (
-                            <AccordionItem value={s.id} key={s.id}>
-                                <AccordionTrigger>{s.name}</AccordionTrigger>
-                                <AccordionContent>
-                                    <p className="text-sm text-muted-foreground">
-                                        {s.description}
-                                    </p>
-                                </AccordionContent>
-                            </AccordionItem>
-                        ))}
-                    </Accordion>
+                    <ApplicationScopes scopes={missing} />
 
                     {granted.length > 0 && (
                         <>
                             <h3 className="font-semibold mb-2 italic text-zinc-500">
                                 You have already granted:
                             </h3>
-                            <Accordion
-                                type="multiple"
-                                className="mb-4 font-medium flex flex-col gap-2"
-                            >
-                                {granted.map((s) => (
-                                    <AccordionItem value={s.id} key={s.id}>
-                                        <AccordionTrigger>
-                                            {s.name}
-                                        </AccordionTrigger>
-                                        <AccordionContent>
-                                            <p className="text-sm text-muted-foreground">
-                                                {s.description}
-                                            </p>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                ))}
-                            </Accordion>
+                            <ApplicationScopes scopes={granted} />
                         </>
                     )}
 
