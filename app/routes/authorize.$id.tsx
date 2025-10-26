@@ -1,6 +1,7 @@
 import { auth } from "@/.server/auth";
 import provider from "@/.server/oidc";
 import prisma from "@/.server/prisma";
+import { commitCSRFToken, validateCSRFToken } from "@/.server/security";
 import { authClient } from "@/components/auth-client";
 import {
     Accordion,
@@ -22,6 +23,7 @@ import { UserAvatar } from "@daveyplate/better-auth-ui";
 import { AccordionItem } from "@radix-ui/react-accordion";
 import { Link2Icon } from "lucide-react";
 import {
+    data,
     isRouteErrorResponse,
     LoaderFunctionArgs,
     redirect,
@@ -74,7 +76,10 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         );
     }
 
-    if (interaction.prompt.name === "login") {
+    if (
+        interaction.prompt.name === "login" ||
+        interaction.session?.accountId != session.user.id
+    ) {
         interaction.result = {
             login: { accountId: session.user.id, remember: true },
         };
@@ -111,17 +116,30 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
             : []),
     ];
 
-    return {
-        client: {
-            name: client.name || client.clientId!,
-            logo: client.icon || undefined,
-            scopes: scopeData,
-            missing: missingScopes,
+    const csrf = await commitCSRFToken(request.headers);
+
+    return data(
+        {
+            client: {
+                name: client.name || client.clientId!,
+                logo: client.icon || undefined,
+                scopes: scopeData,
+                missing: missingScopes,
+            },
+            csrf,
         },
-    };
+        { headers: csrf.headers }
+    );
 }
 
 export async function action({ params: pm, request }: LoaderFunctionArgs) {
+    const formData = await request.formData();
+    const authorize = formData.get("authorize") === "true";
+    await validateCSRFToken(
+        request,
+        formData.get("csrfToken") as string | undefined
+    );
+
     const { id } = pm;
     if (!id) {
         throw new Response("Missing id", { status: 400 });
@@ -131,9 +149,6 @@ export async function action({ params: pm, request }: LoaderFunctionArgs) {
     if (!interaction) {
         throw new Response("Interaction not found", { status: 404 });
     }
-
-    const formData = await request.formData();
-    const authorize = formData.get("authorize") === "true";
 
     if (!authorize) {
         interaction.result = {
@@ -198,6 +213,7 @@ export default function AuthorizePage() {
     async function submit(authorize: boolean) {
         const formData = new FormData();
         formData.append("authorize", authorize ? "true" : "false");
+        formData.append("csrfToken", data.csrf.csrfToken);
         fetcher.submit(formData, { method: "post" });
     }
 

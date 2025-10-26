@@ -59,8 +59,8 @@ export default function AccountLayout() {
             </Sidebar>
 
             <div className="flex-1 p-4">
-                <h1 className="font-bold lg:text-4xl mb-8 text-2xl">
-                    <SidebarTrigger size="lg" />
+                <h1 className="font-bold mb-8 text-2xl">
+                    <SidebarTrigger size="lg" className="m-auto mr-2" />
 
                     {{
                         settings: "Account Settings",
