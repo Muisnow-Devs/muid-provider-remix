@@ -5,13 +5,18 @@ import { redirectToLogin } from "@/components/auth-client";
 import { Button } from "@/components/ui/button";
 import {
     Card,
-    CardAction,
     CardContent,
     CardFooter,
     CardHeader,
 } from "@/components/ui/card";
-import { Accordion } from "@radix-ui/react-accordion";
-import { LoaderFunctionArgs, redirect, useLoaderData } from "react-router";
+import { CircleQuestionMarkIcon } from "lucide-react";
+import { LoaderFunctionArgs, MetaFunction, useLoaderData } from "react-router";
+
+export const meta: MetaFunction = () => {
+    return [
+        { title: "Connected Applications - MuID" },
+    ];
+}
 
 export async function loader({ request }: LoaderFunctionArgs) {
     const session = await auth.api.getSession({
@@ -79,7 +84,10 @@ export default function AccountConnectRoute() {
     return (
         <div className="flex flex-col gap-6 max-w-4xl mx-auto">
             {data.connectedApps.length === 0 && (
-                <p>No connected applications.</p>
+                <div className="flex flex-col items-center justify-center mt-20 text-muted-foreground gap-4">
+                    <CircleQuestionMarkIcon />
+                    <p>No connected applications found.</p>
+                </div>
             )}
 
             {data.connectedApps.map((app, index) => (
