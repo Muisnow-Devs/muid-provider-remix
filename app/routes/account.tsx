@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from "react-router";
+import { Link, LoaderFunctionArgs, Outlet, useLocation } from "react-router";
 import Logo from "@/components/logo/main.svg?react";
 import { LinkIcon, Shield, User2 } from "lucide-react";
 import { UserButton } from "@daveyplate/better-auth-ui";
@@ -12,7 +12,9 @@ import {
     SidebarMenuItem,
     SidebarProvider,
     SidebarTrigger,
+    useSidebar,
 } from "@/components/ui/sidebar";
+import { useEffect, useState } from "react";
 
 const NAV = [
     { name: "Account Settings", href: "/account/settings", icon: User2 },

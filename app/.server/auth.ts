@@ -15,6 +15,7 @@ import emailVerificationTemplate, {
     EmailType,
 } from "./templates/emailVerification";
 import { SocialProviders } from "better-auth/social-providers";
+import { redirectToLogin } from "@/utils";
 
 const socialProviders: SocialProviders = {
     google: {
@@ -66,7 +67,7 @@ async function sendDeleteAccountVerification({
     );
 
     const subject = "Verify your account deletion";
-    enqueue({
+    await enqueue({
         type: "email.sent",
         payload: {
             to: user.email,
@@ -95,7 +96,7 @@ async function sendVerificationEmail({
     );
 
     const subject = "Verify your email address";
-    enqueue({
+    await enqueue({
         type: "email.sent",
         payload: {
             to: user.email,
@@ -122,7 +123,7 @@ async function sendVerificationOTP({
 
     const subject =
         type === "sign-in" ? "Your login OTP" : "Your verification OTP";
-    enqueue({
+    await enqueue({
         type: "email.sent",
         payload: {
             to: email,
@@ -135,3 +136,15 @@ async function sendVerificationOTP({
         },
     });
 }
+
+export const checkSession = async (request: Request) => {
+    const session = await auth.api.getSession({
+        headers: request.headers,
+    });
+
+    if (!session) {
+        throw redirectToLogin(new URL(request.url).pathname);
+    }
+
+    return session;
+};

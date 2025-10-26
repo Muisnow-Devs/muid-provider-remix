@@ -1,6 +1,6 @@
 export interface AppEventMap {
     "uesr.updated": { userId: string, changes: Record<string, any> };
-    "user.deleted": { userId: string };
+    "user.deleted": { userId: string, clientId: string };
     "email.sent": { to: string, subject: string, body: string };
     unknown: unknown;
 }

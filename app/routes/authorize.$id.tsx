@@ -1,14 +1,9 @@
-import { auth } from "@/.server/auth";
+import { checkSession } from "@/.server/auth";
 import provider from "@/.server/oidc";
 import prisma from "@/.server/prisma";
 import { commitCSRFToken, validateCSRFToken } from "@/.server/security";
 import { ApplicationIcon, ApplicationScopes } from "@/components/application";
-import { authClient, redirectToLogin } from "@/components/auth-client";
-import {
-    Accordion,
-    AccordionContent,
-    AccordionTrigger,
-} from "@/components/ui/accordion";
+import { authClient } from "@/components/auth-client";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -21,7 +16,6 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { getEpochTime } from "@/lib/utils";
 import { UserAvatar } from "@daveyplate/better-auth-ui";
-import { AccordionItem } from "@radix-ui/react-accordion";
 import { Link2Icon } from "lucide-react";
 import {
     data,
@@ -67,13 +61,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         );
     }
 
-    const session = await auth.api.getSession({
-        headers: request.headers,
-    });
-
-    if (!session) {
-        return redirectToLogin(encodeURIComponent("/authorize/" + id));
-    }
+    const session = await checkSession(request);
 
     if (
         interaction.prompt.name === "login" ||

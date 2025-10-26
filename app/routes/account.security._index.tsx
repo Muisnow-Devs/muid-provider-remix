@@ -1,9 +1,15 @@
+import { checkSession } from "@/.server/auth";
 import {
     DeleteAccountCard,
     PasskeysCard,
     ProvidersCard,
     SessionsCard,
 } from "@daveyplate/better-auth-ui";
+import { LoaderFunctionArgs } from "react-router";
+
+export async function loader({ request }: LoaderFunctionArgs) {
+    await checkSession(request);
+}
 
 export default function AccountSecurityRoute() {
     return (

@@ -1,4 +1,10 @@
+import { checkSession } from "@/.server/auth";
 import { AccountsCard, UpdateNameCard } from "@daveyplate/better-auth-ui";
+import { LoaderFunctionArgs } from "react-router";
+
+export async function loader({ request }: LoaderFunctionArgs) {
+    await checkSession(request);
+}
 
 export default function AccountSettingsRoute() {
     return (

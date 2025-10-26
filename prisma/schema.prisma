@@ -32,7 +32,6 @@ model User {
   displayUsername   String?
   passkeys          Passkey[]
   oauthapplications OauthApplication[]
-  oauthaccesstokens OauthAccessToken[]
   oauthconsents     OauthConsent[]
 
   @@unique([email])
@@ -118,32 +117,12 @@ model OauthApplication {
   user              User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt         DateTime?
   updatedAt         DateTime?
-  oauthaccesstokens OauthAccessToken[]
   oauthconsents     OauthConsent[]
 
   webhook String?
 
   @@unique([clientId])
   @@map("oauthApplication")
-}
-
-model OauthAccessToken {
-  id                    String            @id
-  accessToken           String?
-  refreshToken          String?
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-  clientId              String?
-  oauthapplication      OauthApplication? @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
-  userId                String?
-  user                  User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  scopes                String?           @db.Text
-  createdAt             DateTime?
-  updatedAt             DateTime?
-
-  @@unique([accessToken])
-  @@unique([refreshToken])
-  @@map("oauthAccessToken")
 }
 
 model OauthConsent {
@@ -156,6 +135,7 @@ model OauthConsent {
   createdAt        DateTime?
   updatedAt        DateTime?
   consentGiven     Boolean?
+  OidcModel        OidcModel[]
 
   @@index([userId, clientId])
   @@map("oauthConsent")
@@ -172,19 +152,19 @@ model Jwks {
 
 // OIDC Provider Models for persistent storage
 model OidcModel {
-  id         String    @id
-  type       String // Grant, Session, AccessToken, etc.
-  payload    String    @db.Text // JSON stringified payload
-  grantId    String? // For revocation by grantId
-  userCode   String? // For DeviceCode findByUserCode
-  uid        String? // For Session findByUid
-  expiresAt  DateTime
-  consumedAt DateTime? // For marking as consumed
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id           String        @id
+  type         String // Grant, Session, AccessToken, etc.
+  payload      String        @db.Text // JSON stringified payload
+  grantId      String? // For revocation by grantId
+  grantConsent OauthConsent? @relation(fields: [grantId], references: [id], onDelete: Cascade)
+  userCode     String? // For DeviceCode findByUserCode
+  uid          String? // For Session findByUid
+  expiresAt    DateTime
+  consumedAt   DateTime? // For marking as consumed
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@index([type])
-  @@index([grantId])
   @@index([userCode])
   @@index([uid])
   @@index([expiresAt])
