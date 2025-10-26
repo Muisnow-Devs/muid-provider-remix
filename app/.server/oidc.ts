@@ -1,4 +1,4 @@
-import Provider, { Configuration } from "oidc-provider";
+import Provider, { Configuration, KoaContextWithOIDC } from "oidc-provider";
 import RedisAdapter from "./adapters/RedisAdaper";
 import DatabaseAdapter from "./adapters/DatabaseAdapter";
 import ClientAdapter from "./adapters/ClientAdapter";
@@ -8,6 +8,7 @@ import { logger } from "./logger";
 import prisma from "./prisma";
 import { OAuthInteractionInvalidError } from "@/errors/common";
 import { auth } from "./auth";
+import { getEpochTime } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -96,15 +97,14 @@ const configuration: Configuration = {
                     jwt: {
                         sign: {
                             alg: "RS256",
-                        }
-                    }
+                        },
+                    },
                 };
             },
         },
     },
 
     expiresWithSession: () => false,
-
     renderError: async (ctx, out, error) => {
         console.error("OIDC Provider error:", error);
         if (error instanceof OAuthInteractionInvalidError) {
@@ -156,38 +156,55 @@ const configuration: Configuration = {
         };
     },
 
-    async loadExistingGrant(ctx) {
-        const clientid = ctx.oidc.params?.client_id as string | undefined;
-        const accountId = await auth.api
-            .getSession({
-                headers: ctx.req.headers as Record<string, string>,
-            })
-            .then((s) => s?.user.id);
-
-        const grantId = await prisma.oauthConsent
-            .findFirst({
-                where: {
-                    userId: accountId,
-                    clientId: clientid,
-                },
-                select: { id: true },
-            })
-            .then((g) => g?.id);
-
-        if (grantId) {
-            return ctx.oidc.provider.Grant.find(grantId);
-        }
-
-        return undefined;
-    },
-
+    loadExistingGrant,
     interactions: {
-        url(ctx, interaction) {
+        async url(ctx, interaction) {
+            const session = await auth.api
+                .getSession({
+                    headers: ctx.req.headers as Record<string, string>,
+                })
+                .then((s) => s?.user.id);
+
+            if (session) {
+                interaction.result = {
+                    login: { accountId: session, remember: false },
+                };
+                await interaction.save(interaction.exp - getEpochTime());
+            }
+
             return `/authorize/${interaction.uid}`;
         },
     },
     jwks,
 };
+
+async function loadExistingGrant(ctx: KoaContextWithOIDC) {
+    const clientid = ctx.oidc.params?.client_id as string | undefined;
+    const accountId = ctx.oidc.session?.accountId;
+    const currentSession = await auth.api.getSession({
+        headers: ctx.req.headers as Record<string, string>,
+    });
+
+    if (currentSession?.user.id !== accountId) {
+        return undefined;
+    }
+
+    const grantId = await prisma.oauthConsent
+        .findFirst({
+            where: {
+                userId: accountId,
+                clientId: clientid,
+            },
+            select: { id: true },
+        })
+        .then((g) => g?.id);
+
+    if (grantId) {
+        return ctx.oidc.provider.Grant.find(grantId);
+    }
+
+    return undefined;
+}
 
 const provider = new Provider(issuer, configuration);
 provider.proxy = true;

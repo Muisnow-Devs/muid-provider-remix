@@ -80,7 +80,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         interaction.session?.accountId != session.user.id
     ) {
         interaction.result = {
-            login: { accountId: session.user.id, remember: true },
+            login: { accountId: session.user.id, remember: false },
         };
 
         await interaction.save(interaction.exp - getEpochTime());

@@ -1,4 +1,4 @@
-import { Accordion, AccordionContent, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 
 interface ApplicationIconProps {
     icon: string | null;

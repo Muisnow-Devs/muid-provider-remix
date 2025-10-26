@@ -1,7 +1,7 @@
 import { auth } from "@/.server/auth";
 import prisma from "@/.server/prisma";
 import { ApplicationIcon, ApplicationScopes } from "@/components/application";
-import { redirectToLogin } from "@/components/auth-client";
+import { authClient, redirectToLogin } from "@/components/auth-client";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -10,7 +10,8 @@ import {
     CardHeader,
 } from "@/components/ui/card";
 import { CircleQuestionMarkIcon } from "lucide-react";
-import { LoaderFunctionArgs, MetaFunction, useLoaderData } from "react-router";
+import { useEffect } from "react";
+import { LoaderFunctionArgs, MetaFunction, useFetcher, useLoaderData, useNavigate } from "react-router";
 
 export const meta: MetaFunction = () => {
     return [
@@ -80,6 +81,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function AccountConnectRoute() {
     const data = useLoaderData<typeof loader>();
+    const navigate = useNavigate();
+    const auth = authClient.useSession();
+
+    useEffect(() => {
+        console.log("Auth session changed, reloading connected apps");
+        navigate(".");
+    }, [auth.data]);
 
     return (
         <div className="flex flex-col gap-6 max-w-4xl mx-auto">
