@@ -121,7 +121,7 @@ model OauthApplication {
   oauthaccesstokens OauthAccessToken[]
   oauthconsents     OauthConsent[]
 
-  accountRemoveURL String?
+  webhook String?
 
   @@unique([clientId])
   @@map("oauthApplication")
@@ -157,6 +157,7 @@ model OauthConsent {
   updatedAt        DateTime?
   consentGiven     Boolean?
 
+  @@index([userId, clientId])
   @@map("oauthConsent")
 }
 

@@ -2,7 +2,7 @@ import { auth } from "@/.server/auth";
 import provider from "@/.server/oidc";
 import prisma from "@/.server/prisma";
 import { commitCSRFToken, validateCSRFToken } from "@/.server/security";
-import { authClient } from "@/components/auth-client";
+import { authClient, redirectToLogin } from "@/components/auth-client";
 import {
     Accordion,
     AccordionContent,
@@ -71,9 +71,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     });
 
     if (!session) {
-        return redirect(
-            "/auth/sign-in?redirectTo=" + encodeURIComponent("/authorize/" + id)
-        );
+        return redirectToLogin(encodeURIComponent("/authorize/" + id));
     }
 
     if (
@@ -192,9 +190,11 @@ export async function action({ params: pm, request }: LoaderFunctionArgs) {
 
     const gi = await grant.save();
 
-    await prisma.oauthConsent.delete({
-        where: { id: grantId },
-    });
+    if (grantId) {
+        await prisma.oauthConsent.delete({
+            where: { id: grantId },
+        });
+    }
 
     interaction.result = {
         ...interaction.lastSubmission,
