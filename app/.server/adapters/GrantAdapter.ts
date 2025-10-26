@@ -16,23 +16,26 @@ class GrantAdapter implements Adapter {
     /**
      * Upsert (create or update) a Grant instance
      */
-    async upsert(id: string, payload: AdapterPayload, _expiresIn: number): Promise<void> {
-        const grantData = {
-            id,
-            clientId: payload.clientId as string || null,
-            userId: payload.accountId as string || null,
-            scopes: this.extractScopes(payload),
-            consentGiven: true, // If we're storing it, consent was given
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        };
+    async upsert(
+        id: string,
+        payload: AdapterPayload,
+        _expiresIn: number
+    ): Promise<void> {
+        console.log(`[GrantAdapter] Upserting Grant id: ${id}`, payload);
 
         await prisma.oauthConsent.upsert({
             where: { id },
-            create: grantData,
-            update: {
-                ...grantData,
+            create: {
+                id,
+                clientId: (payload.clientId as string) || null,
+                userId: (payload.accountId as string) || null,
+                scopes: this.extractScopes(payload),
+                consentGiven: true, // If we're storing it, consent was given
+                createdAt: new Date(),
                 updatedAt: new Date(),
+            },
+            update: {
+                scopes: this.extractScopes(payload),
             },
         });
     }
@@ -44,15 +47,15 @@ class GrantAdapter implements Adapter {
         const scopes: string[] = [];
 
         // Extract from resources
-        if (payload.resources && typeof payload.resources === 'object') {
-            Object.values(payload.resources).forEach(scope => {
-                if (typeof scope === 'string') {
+        if (payload.resources && typeof payload.resources === "object") {
+            Object.values(payload.resources).forEach((scope) => {
+                if (typeof scope === "string") {
                     scopes.push(scope);
                 }
             });
         }
 
-        return scopes.join(' ');
+        return scopes.join(" ");
     }
 
     /**
@@ -63,18 +66,26 @@ class GrantAdapter implements Adapter {
             return {};
         }
 
-        const scopes = scopesString.split(' ');
-        const openidScopes = scopes.filter(s =>
-            ['openid', 'profile', 'email', 'address', 'phone', 'offline_access'].includes(s)
+        const scopes = scopesString.split(" ");
+        const openidScopes = scopes.filter((s) =>
+            [
+                "openid",
+                "profile",
+                "email",
+                "address",
+                "phone",
+                "offline_access",
+            ].includes(s)
         );
 
         return {
             openid: {
-                scope: openidScopes.join(' '),
+                scope: openidScopes.join(" "),
+                claims: openidScopes,
             },
             resources: {
-                "https://api.muisnowdevs.one": scopes.join(' '),
-            }
+                "https://api.muisnowdevs.one": scopes.join(" "),
+            },
         };
     }
 
@@ -93,6 +104,13 @@ class GrantAdapter implements Adapter {
         const payload: AdapterPayload = {
             accountId: grant.userId || undefined,
             clientId: grant.clientId || undefined,
+            jti: id,
+            iat: Math.floor(grant.createdAt!.getTime() / 1000),
+            grant_types: [
+                "authorization_code",
+                "refresh_token",
+                "client_credentials",
+            ],
             ...this.parseScopes(grant.scopes),
         };
 
@@ -102,8 +120,9 @@ class GrantAdapter implements Adapter {
     /**
      * Find Grant by user code (not applicable for Grant)
      */
-    async findByUserCode(_userCode: string): Promise<AdapterPayload | undefined> {
-        logger.warn(`[GrantAdapter] findByUserCode called but not applicable for Grant`);
+    async findByUserCode(
+        _userCode: string
+    ): Promise<AdapterPayload | undefined> {
         return undefined;
     }
 
@@ -111,7 +130,6 @@ class GrantAdapter implements Adapter {
      * Find Grant by uid (not applicable for Grant)
      */
     async findByUid(_uid: string): Promise<AdapterPayload | undefined> {
-        logger.warn(`[GrantAdapter] findByUid called but not applicable for Grant`);
         return undefined;
     }
 
@@ -132,9 +150,13 @@ class GrantAdapter implements Adapter {
      * Destroy/delete a Grant instance
      */
     async destroy(id: string): Promise<void> {
-        await prisma.oauthConsent.delete({
-            where: { id },
-        }).catch(() => { /* Ignore if not found */ });
+        await prisma.oauthConsent
+            .delete({
+                where: { id },
+            })
+            .catch(() => {
+                /* Ignore if not found */
+            });
     }
 
     /**

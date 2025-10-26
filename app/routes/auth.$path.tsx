@@ -1,6 +1,32 @@
-import { AuthView } from "@daveyplate/better-auth-ui";
+import { AuthView, authViewPaths } from "@daveyplate/better-auth-ui";
 import Logo from "@/components/logo/main.svg?react";
-import { Link, useParams } from "react-router";
+import { Link, MetaFunction, useParams } from "react-router";
+
+export const meta: MetaFunction = ({ params }) => {
+    const { path } = params;
+
+    const titles: Record<string, string> = {
+        [authViewPaths.CALLBACK]: "Callback",
+        [authViewPaths.EMAIL_OTP]: "Email Verification",
+        [authViewPaths.FORGOT_PASSWORD]: "Forgot Password",
+        [authViewPaths.MAGIC_LINK]: "Magic Link",
+        [authViewPaths.RECOVER_ACCOUNT]: "Recover Account",
+        [authViewPaths.RESET_PASSWORD]: "Reset Password",
+        [authViewPaths.SIGN_IN]: "Sign In",
+        [authViewPaths.SIGN_OUT]: "Sign Out",
+        [authViewPaths.SIGN_UP]: "Sign Up",
+        [authViewPaths.TWO_FACTOR]: "Two-Factor Authentication",
+        [authViewPaths.ACCEPT_INVITATION]: "Accept Invitation",
+    };
+
+    return [
+        {
+            title:
+                titles[path as keyof typeof titles] + " - MuID" ||
+                "Authentication - MuID",
+        },
+    ];
+};
 
 export default function AuthPage() {
     const { path } = useParams();

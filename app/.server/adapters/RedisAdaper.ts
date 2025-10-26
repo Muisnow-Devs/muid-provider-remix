@@ -14,25 +14,36 @@ class RedisAdapter implements Adapter {
         return `${this.name}:${id}`;
     }
 
-    async upsert(id: string, payload: AdapterPayload, expiresIn: number): Promise<void> {
+    async upsert(
+        id: string,
+        payload: AdapterPayload,
+        expiresIn: number
+    ): Promise<void> {
         const key = this.key(id);
         const store = JSON.stringify(payload);
-        
+
+        if (payload.uid) {
+            const uid = `Session:uid:${payload.uid}`;
+            await this.client.setex(uid, expiresIn, id);
+        }
+
         await this.client.setex(key, expiresIn, store);
     }
 
     async find(id: string): Promise<AdapterPayload | undefined> {
         const key = this.key(id);
         const data = await this.client.get(key);
-        
+
         if (!data) return undefined;
         return JSON.parse(data);
     }
 
-    async findByUserCode(userCode: string): Promise<AdapterPayload | undefined> {
+    async findByUserCode(
+        userCode: string
+    ): Promise<AdapterPayload | undefined> {
         const key = `${this.name}:userCode:${userCode}`;
         const id = await this.client.get(key);
-        
+
         if (!id) return undefined;
         return this.find(id);
     }
@@ -40,7 +51,7 @@ class RedisAdapter implements Adapter {
     async findByUid(uid: string): Promise<AdapterPayload | undefined> {
         const key = `${this.name}:uid:${uid}`;
         const id = await this.client.get(key);
-        
+
         if (!id) return undefined;
         return this.find(id);
     }
@@ -48,9 +59,12 @@ class RedisAdapter implements Adapter {
     async consume(id: string): Promise<void> {
         const key = this.key(id);
         const data = await this.find(id);
-        
+
         if (data) {
-            const updatedData = { ...data, consumed: Math.floor(Date.now() / 1000) };
+            const updatedData = {
+                ...data,
+                consumed: Math.floor(Date.now() / 1000),
+            };
             const ttl = await this.client.ttl(key);
             if (ttl > 0) {
                 await this.client.setex(key, ttl, JSON.stringify(updatedData));
@@ -65,7 +79,7 @@ class RedisAdapter implements Adapter {
 
     async revokeByGrantId(grantId: string): Promise<void> {
         const keys = await this.client.keys(`${this.name}:*`);
-        
+
         for (const key of keys) {
             const data = await this.client.get(key);
             if (data) {

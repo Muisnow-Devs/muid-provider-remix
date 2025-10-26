@@ -26,7 +26,7 @@ import {
     data,
     isRouteErrorResponse,
     LoaderFunctionArgs,
-    redirect,
+    MetaFunction,
     redirectDocument,
     useFetcher,
     useLoaderData,
@@ -130,6 +130,17 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     );
 }
 
+export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
+    return [
+        {
+            title:
+                loaderData
+                    ? `Authorize ${loaderData.client.name} - MuID`
+                    : "Authorize Error - MuID"
+        },
+    ];
+}
+
 export async function action({ params: pm, request }: LoaderFunctionArgs) {
     const formData = await request.formData();
     const authorize = formData.get("authorize") === "true";
@@ -189,12 +200,6 @@ export async function action({ params: pm, request }: LoaderFunctionArgs) {
     }
 
     const gi = await grant.save();
-
-    if (grantId) {
-        await prisma.oauthConsent.delete({
-            where: { id: grantId },
-        });
-    }
 
     interaction.result = {
         ...interaction.lastSubmission,

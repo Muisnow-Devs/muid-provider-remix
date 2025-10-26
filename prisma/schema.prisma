@@ -147,7 +147,7 @@ model OauthAccessToken {
 }
 
 model OauthConsent {
-  id               String            @id
+  id               String            @id @default(uuid())
   clientId         String?
   oauthapplication OauthApplication? @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
   userId           String?

@@ -47,7 +47,7 @@ const configuration: Configuration = {
     // Supported claims
     claims: {
         openid: ["sub"],
-        profile: ["name", "email"],
+        profile: ["name", "photo"],
         email: ["email", "email_verified"],
     },
 
@@ -59,6 +59,7 @@ const configuration: Configuration = {
         introspection: { enabled: true }, // Enable token introspection
         resourceIndicators: {
             enabled: true,
+            useGrantedResource: () => true,
             defaultResource: () => "https://api.muisnowdevs.one",
             async getResourceServerInfo(ctx, indicator, client) {
                 if (!indicator)
@@ -89,11 +90,20 @@ const configuration: Configuration = {
                 }
 
                 return {
+                    audience: "https://api.muisnowdevs.one",
                     scope: scopes.map((s) => s.id).join(" "),
+                    accessTokenFormat: "jwt",
+                    jwt: {
+                        sign: {
+                            alg: "RS256",
+                        }
+                    }
                 };
             },
         },
     },
+
+    expiresWithSession: () => false,
 
     renderError: async (ctx, out, error) => {
         console.error("OIDC Provider error:", error);
@@ -133,7 +143,7 @@ const configuration: Configuration = {
 
                 if (scope.includes("profile")) {
                     claims.name = user.name;
-                    claims.email = user.email;
+                    claims.photo = user.image;
                 }
 
                 if (scope.includes("email")) {
@@ -148,26 +158,21 @@ const configuration: Configuration = {
 
     async loadExistingGrant(ctx) {
         const clientid = ctx.oidc.params?.client_id as string | undefined;
-        const accountId =
-            ctx.oidc.session?.accountId ||
-            (await auth.api
-                .getSession({
-                    headers: ctx.req.headers as Record<string, string>,
-                })
-                .then((s) => s?.user.id));
-        
-        const grantId =
-            ctx.oidc.result?.consent?.grantId ||
-            ctx.oidc.session?.grantIdFor(clientid || "") ||
-            (await prisma.oauthConsent
-                .findFirst({
-                    where: {
-                        userId: accountId,
-                        clientId: clientid,
-                    },
-                    select: { id: true },
-                })
-                .then((g) => g?.id));
+        const accountId = await auth.api
+            .getSession({
+                headers: ctx.req.headers as Record<string, string>,
+            })
+            .then((s) => s?.user.id);
+
+        const grantId = await prisma.oauthConsent
+            .findFirst({
+                where: {
+                    userId: accountId,
+                    clientId: clientid,
+                },
+                select: { id: true },
+            })
+            .then((g) => g?.id);
 
         if (grantId) {
             return ctx.oidc.provider.Grant.find(grantId);
@@ -188,6 +193,14 @@ const provider = new Provider(issuer, configuration);
 provider.proxy = true;
 provider.on("server_error", (error) => {
     logger.error("OIDC Provider server error:", { error });
+});
+
+provider.on("authorization.error", (ctx, error) => {
+    logger.error("OIDC Provider authorization error:", { error });
+});
+
+provider.on("grant.error", (ctx, error) => {
+    logger.error("OIDC Provider grant error:", { error });
 });
 
 export default provider;
