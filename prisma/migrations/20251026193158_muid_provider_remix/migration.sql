@@ -41,12 +41,12 @@ CREATE TABLE `account` (
     `accountId` VARCHAR(191) NOT NULL,
     `providerId` VARCHAR(191) NOT NULL,
     `userId` VARCHAR(191) NOT NULL,
-    `accessToken` VARCHAR(191) NULL,
-    `refreshToken` VARCHAR(191) NULL,
-    `idToken` VARCHAR(191) NULL,
+    `accessToken` TEXT NULL,
+    `refreshToken` TEXT NULL,
+    `idToken` TEXT NULL,
     `accessTokenExpiresAt` DATETIME(3) NULL,
     `refreshTokenExpiresAt` DATETIME(3) NULL,
-    `scope` VARCHAR(191) NULL,
+    `scope` TEXT NULL,
     `password` VARCHAR(191) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
@@ -58,7 +58,7 @@ CREATE TABLE `account` (
 CREATE TABLE `verification` (
     `id` VARCHAR(191) NOT NULL,
     `identifier` VARCHAR(191) NOT NULL,
-    `value` VARCHAR(191) NOT NULL,
+    `value` TEXT NOT NULL,
     `expiresAt` DATETIME(3) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -97,27 +97,9 @@ CREATE TABLE `oauthApplication` (
     `userId` VARCHAR(191) NULL,
     `createdAt` DATETIME(3) NULL,
     `updatedAt` DATETIME(3) NULL,
-    `accountRemoveURL` VARCHAR(191) NULL,
+    `webhook` VARCHAR(191) NULL,
 
     UNIQUE INDEX `oauthApplication_clientId_key`(`clientId`),
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
-CREATE TABLE `oauthAccessToken` (
-    `id` VARCHAR(191) NOT NULL,
-    `accessToken` VARCHAR(191) NULL,
-    `refreshToken` VARCHAR(191) NULL,
-    `accessTokenExpiresAt` DATETIME(3) NULL,
-    `refreshTokenExpiresAt` DATETIME(3) NULL,
-    `clientId` VARCHAR(191) NULL,
-    `userId` VARCHAR(191) NULL,
-    `scopes` VARCHAR(191) NULL,
-    `createdAt` DATETIME(3) NULL,
-    `updatedAt` DATETIME(3) NULL,
-
-    UNIQUE INDEX `oauthAccessToken_accessToken_key`(`accessToken`),
-    UNIQUE INDEX `oauthAccessToken_refreshToken_key`(`refreshToken`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -126,19 +108,20 @@ CREATE TABLE `oauthConsent` (
     `id` VARCHAR(191) NOT NULL,
     `clientId` VARCHAR(191) NULL,
     `userId` VARCHAR(191) NULL,
-    `scopes` VARCHAR(191) NULL,
+    `scopes` TEXT NULL,
     `createdAt` DATETIME(3) NULL,
     `updatedAt` DATETIME(3) NULL,
     `consentGiven` BOOLEAN NULL,
 
+    INDEX `oauthConsent_userId_clientId_idx`(`userId`, `clientId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `jwks` (
     `id` VARCHAR(191) NOT NULL,
-    `publicKey` VARCHAR(191) NOT NULL,
-    `privateKey` VARCHAR(191) NOT NULL,
+    `publicKey` TEXT NOT NULL,
+    `privateKey` TEXT NOT NULL,
     `createdAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -158,10 +141,21 @@ CREATE TABLE `oidcModel` (
     `updatedAt` DATETIME(3) NOT NULL,
 
     INDEX `oidcModel_type_idx`(`type`),
-    INDEX `oidcModel_grantId_idx`(`grantId`),
     INDEX `oidcModel_userCode_idx`(`userCode`),
     INDEX `oidcModel_uid_idx`(`uid`),
     INDEX `oidcModel_expiresAt_idx`(`expiresAt`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `oidcScope` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    UNIQUE INDEX `oidcScope_name_key`(`name`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -178,13 +172,10 @@ ALTER TABLE `passkey` ADD CONSTRAINT `passkey_userId_fkey` FOREIGN KEY (`userId`
 ALTER TABLE `oauthApplication` ADD CONSTRAINT `oauthApplication_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `oauthAccessToken` ADD CONSTRAINT `oauthAccessToken_clientId_fkey` FOREIGN KEY (`clientId`) REFERENCES `oauthApplication`(`clientId`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `oauthAccessToken` ADD CONSTRAINT `oauthAccessToken_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE `oauthConsent` ADD CONSTRAINT `oauthConsent_clientId_fkey` FOREIGN KEY (`clientId`) REFERENCES `oauthApplication`(`clientId`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `oauthConsent` ADD CONSTRAINT `oauthConsent_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `oidcModel` ADD CONSTRAINT `oidcModel_grantId_fkey` FOREIGN KEY (`grantId`) REFERENCES `oauthConsent`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
