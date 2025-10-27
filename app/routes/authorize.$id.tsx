@@ -158,8 +158,6 @@ export async function action({ params: pm, request }: LoaderFunctionArgs) {
 
     const {
         prompt: { name, details: promptDetails },
-        session,
-        params,
     } = interaction;
 
     const grantId = await prisma.oauthConsent
