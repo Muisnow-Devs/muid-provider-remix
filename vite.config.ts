@@ -5,7 +5,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import svgr from "vite-plugin-svgr";
 import { visualizer } from "rollup-plugin-visualizer";
 
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
     plugins: [
         tailwindcss(),
         reactRouter(),
@@ -15,5 +15,10 @@ export default defineConfig({
     ],
     build: {
         chunkSizeWarningLimit: 1000,
+        rollupOptions: isSsrBuild
+            ? {
+                  input: "./server/app.ts",
+              }
+            : undefined,
     },
-});
+}));
