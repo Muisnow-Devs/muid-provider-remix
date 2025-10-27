@@ -5,7 +5,7 @@
     "scripts": {
         "build": "react-router build",
         "dev": "cross-env NODE_ENV=development node server.js",
-        "start": "node server.js",
+        "start": "PORT=6638 node server.js",
         "typecheck": "react-router typegen && tsc -b",
         "db:dev": "prisma dev --name muid-provider-remix",
         "db:dev:migrate": "prisma migrate dev --name muid-provider-remix",
