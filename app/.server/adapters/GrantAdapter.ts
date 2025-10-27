@@ -21,14 +21,12 @@ class GrantAdapter implements Adapter {
         payload: AdapterPayload,
         _expiresIn: number
     ): Promise<void> {
-        console.log(`[GrantAdapter] Upserting Grant id: ${id}`, payload);
-
         await prisma.oauthConsent.upsert({
             where: { id },
             create: {
                 id,
-                clientId: (payload.clientId as string) || null,
-                userId: (payload.accountId as string) || null,
+                clientId: payload.clientId as string,
+                userId: payload.accountId as string,
                 scopes: this.extractScopes(payload),
                 consentGiven: true, // If we're storing it, consent was given
                 createdAt: new Date(),

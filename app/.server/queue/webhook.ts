@@ -2,7 +2,7 @@ import { JobsOptions, Queue } from "bullmq";
 import { AppEventMap, AppQueueEvent, QueueNames } from "./tasks/ProcessData";
 import config from "./config";
 
-const queue = new Queue<AppQueueEvent>(QueueNames.DEFAULT, config);
+const queue = new Queue<AppQueueEvent>(QueueNames.CLIENT_EVENTS, config);
 
 export function enqueue<K extends keyof AppEventMap>({
     type,

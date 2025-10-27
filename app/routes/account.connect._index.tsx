@@ -95,7 +95,7 @@ export async function action({ request }: ActionFunctionArgs) {
     });
 
     await enqueue({
-        type: "user.deleted",
+        type: "user.revoked",
         payload: {
             userId: session.user.id,
             clientId: appId,

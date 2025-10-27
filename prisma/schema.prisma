@@ -104,20 +104,20 @@ model Passkey {
 }
 
 model OauthApplication {
-  id                String             @id
-  name              String?
-  icon              String?
-  metadata          String?
-  clientId          String?
-  clientSecret      String?
-  redirectURLs      String?
-  type              String?
-  disabled          Boolean?           @default(false)
-  userId            String?
-  user              User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt         DateTime?
-  updatedAt         DateTime?
-  oauthconsents     OauthConsent[]
+  id            String         @id
+  name          String?
+  icon          String?
+  metadata      String?
+  clientId      String
+  clientSecret  String
+  redirectURLs  String
+  type          String         @default("web") // web, native, machine
+  disabled      Boolean?       @default(false)
+  userId        String?
+  user          User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime?      @default(now())
+  updatedAt     DateTime?      @default(now()) @updatedAt
+  oauthconsents OauthConsent[]
 
   webhook String?
 
@@ -126,14 +126,14 @@ model OauthApplication {
 }
 
 model OauthConsent {
-  id               String            @id @default(uuid())
-  clientId         String?
-  oauthapplication OauthApplication? @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
-  userId           String?
-  user             User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  scopes           String?           @db.Text
-  createdAt        DateTime?
-  updatedAt        DateTime?
+  id               String           @id @default(uuid())
+  clientId         String
+  oauthapplication OauthApplication @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scopes           String           @db.Text
+  createdAt        DateTime?        @default(now())
+  updatedAt        DateTime?        @default(now()) @updatedAt
   consentGiven     Boolean?
   OidcModel        OidcModel[]
 

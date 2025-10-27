@@ -1,6 +1,10 @@
 import prisma from "./prisma";
 import { logger } from "./logger";
 import { generateKeyPair, exportJWK, JWK } from "jose";
+import { decryption, encryption } from "./security";
+
+const encKey =
+    process.env.JWKS_ENC_KEY || "default_encryption_key_please_change";
 
 interface KeyStore {
     keys: JWK[];
@@ -9,7 +13,11 @@ interface KeyStore {
 /**
  * Generate a new RSA key pair for JWT signing using jose
  */
-async function generateRSAKeyPair(): Promise<{ publicJwk: JWK; privateJwk: JWK; kid: string }> {
+async function generateRSAKeyPair(): Promise<{
+    publicJwk: JWK;
+    privateJwk: JWK;
+    kid: string;
+}> {
     // Generate key pair using jose
     const { publicKey, privateKey } = await generateKeyPair("RS512", {
         extractable: true,
@@ -44,13 +52,18 @@ export async function loadJwks(): Promise<KeyStore> {
 
             try {
                 // Parse private key (stored as JWK JSON string) - contains all components
-                const privateJwk = JSON.parse(key.privateKey) as JWK;
-                
+                const privateJwk = JSON.parse(
+                    decryption(key.privateKey, encKey).toString("utf-8")
+                ) as JWK;
+
                 return {
                     keys: [privateJwk],
                 };
             } catch (error) {
-                logger.error("Failed to parse stored keys, generating new keys", { error });
+                logger.error(
+                    "Failed to parse stored keys, generating new keys",
+                    { error }
+                );
                 // Fall through to generate new keys
             }
         }
@@ -59,12 +72,14 @@ export async function loadJwks(): Promise<KeyStore> {
         logger.info("Generating new JWKS...");
         const { publicJwk, privateJwk, kid } = await generateRSAKeyPair();
 
-        // Save to database: both as JWK JSON strings
         await prisma.jwks.create({
             data: {
                 id: kid,
                 publicKey: JSON.stringify(publicJwk),
-                privateKey: JSON.stringify(privateJwk),
+                privateKey: encryption(
+                    Buffer.from(JSON.stringify(privateJwk)),
+                    encKey
+                ),
                 createdAt: new Date(),
             },
         });
@@ -83,8 +98,15 @@ export async function loadJwks(): Promise<KeyStore> {
 /**
  * Get JWKS in the format expected by oidc-provider
  */
+let jwksCache: { keys: JWK[] } | null = null;
+
 export async function getJwks(): Promise<{ keys: JWK[] }> {
+    if (jwksCache) {
+        return jwksCache;
+    }
+
     const keystore = await loadJwks();
+    jwksCache = keystore;
     return keystore;
 }
 
@@ -106,6 +128,7 @@ export async function rotateJwks(): Promise<void> {
     });
 
     logger.info("JWKS rotated successfully", { kid });
+    jwksCache = null;
 }
 
 /**

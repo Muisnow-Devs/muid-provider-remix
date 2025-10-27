@@ -1,5 +1,5 @@
 import "react-router";
-import "@/.server/queue/default";
+import "@/.server/queue/worker";
 import { createRequestHandler } from "@react-router/express";
 import express from "express";
 import oidc from "@/.server/oidc";
