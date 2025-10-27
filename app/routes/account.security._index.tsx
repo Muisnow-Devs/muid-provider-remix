@@ -5,7 +5,13 @@ import {
     ProvidersCard,
     SessionsCard,
 } from "@daveyplate/better-auth-ui";
-import { LoaderFunctionArgs } from "react-router";
+import { LoaderFunctionArgs, MetaFunction } from "react-router";
+
+export const meta: MetaFunction = () => {
+    return [
+        { title: "Account Security - MuID" },
+    ]
+}
 
 export async function loader({ request }: LoaderFunctionArgs) {
     await checkSession(request);
