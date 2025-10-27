@@ -60,7 +60,12 @@ const configuration: Configuration = {
         introspection: { enabled: true }, // Enable token introspection
         resourceIndicators: {
             enabled: true,
-            useGrantedResource: () => true,
+            useGrantedResource: async (ctx, model) => {
+                if (!ctx.oidc.params?.resource) {
+                    return false;
+                }
+                return true;
+            },
             defaultResource: () => "https://api.muisnowdevs.one",
             async getResourceServerInfo(ctx, indicator, client) {
                 if (!indicator)
