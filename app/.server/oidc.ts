@@ -48,14 +48,14 @@ const configuration: Configuration = {
     // Supported claims
     claims: {
         openid: ["sub"],
-        profile: ["name", "photo"],
+        profile: ["name", "picture", "preferred_username"],
         email: ["email", "email_verified"],
     },
 
     // Supported features
     features: {
         devInteractions: { enabled: false }, // Disable default dev UI
-        registration: { enabled: true }, // Enable dynamic client registration
+        registration: { enabled: false },
         revocation: { enabled: true }, // Enable token revocation
         introspection: { enabled: true }, // Enable token introspection
         resourceIndicators: {
