@@ -43,6 +43,6 @@ if (DEVELOPMENT) {
     app.use(await import(BUILD_PATH).then((mod) => mod.app));
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, "localhost", () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
