@@ -11,16 +11,16 @@
 
 */
 -- DropForeignKey
-ALTER TABLE `oauthconsent` DROP FOREIGN KEY `oauthConsent_clientId_fkey`;
+ALTER TABLE `oauthConsent` DROP FOREIGN KEY `oauthConsent_clientId_fkey`;
 
 -- DropForeignKey
-ALTER TABLE `oauthconsent` DROP FOREIGN KEY `oauthConsent_userId_fkey`;
+ALTER TABLE `oauthConsent` DROP FOREIGN KEY `oauthConsent_userId_fkey`;
 
 -- DropIndex
-DROP INDEX `oauthConsent_clientId_fkey` ON `oauthconsent`;
+DROP INDEX `oauthConsent_clientId_fkey` ON `oauthConsent`;
 
 -- AlterTable
-ALTER TABLE `oauthapplication` MODIFY `clientId` VARCHAR(191) NOT NULL,
+ALTER TABLE `oauthApplication` MODIFY `clientId` VARCHAR(191) NOT NULL,
     MODIFY `clientSecret` VARCHAR(191) NOT NULL,
     MODIFY `redirectURLs` VARCHAR(191) NOT NULL,
     MODIFY `type` VARCHAR(191) NOT NULL DEFAULT 'web',
@@ -28,7 +28,7 @@ ALTER TABLE `oauthapplication` MODIFY `clientId` VARCHAR(191) NOT NULL,
     MODIFY `updatedAt` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3);
 
 -- AlterTable
-ALTER TABLE `oauthconsent` MODIFY `clientId` VARCHAR(191) NOT NULL,
+ALTER TABLE `oauthConsent` MODIFY `clientId` VARCHAR(191) NOT NULL,
     MODIFY `userId` VARCHAR(191) NOT NULL,
     MODIFY `scopes` TEXT NOT NULL,
     MODIFY `createdAt` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3),
