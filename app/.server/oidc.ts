@@ -147,9 +147,9 @@ const configuration: Configuration = {
                 } = { sub: id };
 
                 if (scope.includes("profile")) {
-                    claims.username = user.username;
+                    claims.preferred_username = user.username;
                     claims.name = user.name;
-                    claims.photo = user.image;
+                    claims.picture = user.image;
                 }
 
                 if (scope.includes("email")) {
