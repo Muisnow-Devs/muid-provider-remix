@@ -33,7 +33,9 @@ async function emailVerificationTemplate({
             content={
                 <>
                     <p>Hi {name},</p>
-                    {action.type === EmailType.OTP && <OTPBox otp={action.otp} />}
+                    {action.type === EmailType.OTP && (
+                        <OTPBox otp={action.otp} />
+                    )}
 
                     {action.type === EmailType.Reset && (
                         <p>
@@ -57,7 +59,7 @@ async function emailVerificationTemplate({
                     )}
                 </>
             }
-            // imageUrl=""
+            imageUrl="https://muisnowdevs.one/favicon.ico"
             siteName="Muisnow Devs"
             baseUrl="https://muisnowdevs.one"
             url={action.type !== EmailType.OTP ? action.url : undefined}
