@@ -48,6 +48,19 @@ export const auth = betterAuth({
         deleteUser: {
             enabled: true,
             sendDeleteAccountVerification,
+            beforeDelete: async (user) => {
+                const clients = await prisma.oauthConsent.findMany({
+                    where: { userId: user.id },
+                    select: { clientId: true },
+                });
+                await enqueue({
+                    type: "user.deleted",
+                    payload: {
+                        userId: user.id,
+                        clients: clients.map((c) => c.clientId),
+                    },
+                });
+            }
         },
     },
 });

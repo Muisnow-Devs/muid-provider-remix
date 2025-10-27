@@ -30,6 +30,9 @@ async function generateRSAKeyPair(): Promise<{
     const publicJwkExport = await exportJWK(publicKey);
     const privateJwkExport = await exportJWK(privateKey);
 
+    publicJwkExport.kid = kid;
+    privateJwkExport.kid = kid;
+
     return { publicJwk: publicJwkExport, privateJwk: privateJwkExport, kid };
 }
 

@@ -14,7 +14,11 @@ export interface AppEventMap {
         changes: Record<string, any>;
         sending?: WebhookUrlPayload;
     };
-    "user.deleted": { userId: string; sending?: WebhookUrlPayload };
+    "user.deleted": {
+        userId: string;
+        clients: string[];
+        sending?: WebhookUrlPayload;
+    };
     "user.revoked": {
         userId: string;
         clientId: string;

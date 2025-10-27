@@ -74,5 +74,8 @@ export async function calculateWebhookSignature(data: string) {
         secret,
         dataBuffer
     );
-    return Buffer.from(signatureBuffer).toString("base64");
+    return {
+        signature: Buffer.from(signatureBuffer).toString("base64url"),
+        kid: jwks.keys[0].kid!,
+    };
 }

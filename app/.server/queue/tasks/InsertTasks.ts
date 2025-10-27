@@ -16,22 +16,42 @@ export class InsertTasks extends QueueTask {
         let clients: { id: string; webhook: string }[] = [];
         switch (type) {
             case "user.deleted":
+                const deletedPayload = payload as AppEventMap["user.deleted"];
+                clients = (
+                    await prisma.oauthApplication.findMany({
+                        where: {
+                            clientId: { in: deletedPayload.clients },
+                            webhook: { not: null },
+                        },
+                        select: { id: true, webhook: true },
+                    })
+                ).filter((r) => r.webhook !== null) as {
+                    id: string;
+                    webhook: string;
+                }[];
+
+                deletedPayload.clients = [];
+                break;
+
             case "uesr.updated":
                 const clientIds = await prisma.oauthConsent.findMany({
                     where: { userId: payload.userId },
                     select: { clientId: true },
                 });
-                const results = await prisma.oauthApplication.findMany({
-                    where: {
-                        id: { in: clientIds.map((c) => c.clientId) },
-                        webhook: { not: null },
-                    },
-                    select: { id: true, webhook: true },
-                });
-                clients = results.filter((r) => r.webhook !== null) as {
+
+                clients = (
+                    await prisma.oauthApplication.findMany({
+                        where: {
+                            id: { in: clientIds.map((c) => c.clientId) },
+                            webhook: { not: null },
+                        },
+                        select: { id: true, webhook: true },
+                    })
+                ).filter((r) => r.webhook !== null) as {
                     id: string;
                     webhook: string;
                 }[];
+
                 break;
 
             case "user.revoked":
@@ -43,13 +63,13 @@ export class InsertTasks extends QueueTask {
                     },
                     select: { id: true, webhook: true },
                 });
-                clients = client ? [client as { id: string; webhook: string }] : [];
-                console.log(clients, client);
+                clients = client
+                    ? [client as { id: string; webhook: string }]
+                    : [];
                 break;
         }
 
         for (const client of clients) {
-            console.log(`Enqueue webhook event for client ${client.id} at ${client.webhook}`);
             await enqueue({
                 type,
                 payload: {
@@ -57,7 +77,7 @@ export class InsertTasks extends QueueTask {
                     sending: {
                         url: client.webhook,
                         clientId: client.id,
-                    }
+                    },
                 },
                 opts: {
                     attempts: 5,
@@ -65,7 +85,7 @@ export class InsertTasks extends QueueTask {
                         type: "exponential",
                         delay: 1000,
                     },
-                }
+                },
             });
         }
     }

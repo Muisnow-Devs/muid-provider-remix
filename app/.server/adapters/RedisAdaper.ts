@@ -1,3 +1,5 @@
+import logger from "../logger";
+import prisma from "../prisma";
 import client from "../redis";
 import { Adapter, AdapterPayload } from "oidc-provider";
 
@@ -33,9 +35,24 @@ class RedisAdapter implements Adapter {
     async find(id: string): Promise<AdapterPayload | undefined> {
         const key = this.key(id);
         const data = await this.client.get(key);
-
         if (!data) return undefined;
-        return JSON.parse(data);
+
+        const payload = JSON.parse(data) as AdapterPayload;
+        if (payload.accountId) {
+            const data = await prisma.user.findUnique({
+                where: { id: payload.accountId as string },
+            });
+
+            if (!data) {
+                logger.warn(
+                    `Account ${payload.accountId} not found, removing ${key}`
+                );
+                await this.destroy(id);
+                return undefined;
+            }
+        }
+
+        return payload;
     }
 
     async findByUserCode(

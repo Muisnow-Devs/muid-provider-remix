@@ -20,12 +20,14 @@ export class SendWebhookEvent extends QueueTask {
             payload: job.data.payload,
             timestamp: job.data.timestamp,
         });
+        const signature = await calculateWebhookSignature(data);
 
         await fetch(job.data.payload.sending.url, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-Signature": await calculateWebhookSignature(data),
+                "X-Signature": signature.signature,
+                "X-Signature-Key": signature.kid,
             },
             body: data,
         });

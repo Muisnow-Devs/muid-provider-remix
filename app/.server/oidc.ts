@@ -116,14 +116,14 @@ const configuration: Configuration = {
         }
     },
 
-    // TTL for various tokens (in seconds)
     ttl: {
+        Interaction: 10 * 60, // 10 minutes
         AccessToken: 60 * 60, // 1 hour
         AuthorizationCode: 10 * 60, // 10 minutes
         IdToken: 60 * 60, // 1 hour
-        RefreshToken: 14 * 24 * 60 * 60, // 14 days
-        Grant: 14 * 24 * 60 * 60, // 14 days
-        Session: 14 * 24 * 60 * 60, // 14 days
+        RefreshToken: 27 * 24 * 60 * 60, // 27 days
+        DeviceCode: 10 * 60, // 10 minutes
+        Session: 5 * 60,
     },
 
     findAccount: async (ctx, id) => {
