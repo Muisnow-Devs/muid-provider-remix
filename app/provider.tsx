@@ -12,7 +12,7 @@ export function Providers({ children }: { children: ReactNode }) {
             credentials={false}
             passkey
             social={{
-                providers: ["google", "github"],
+                providers: ["google"],
             }}
             multiSession
             emailOTP
