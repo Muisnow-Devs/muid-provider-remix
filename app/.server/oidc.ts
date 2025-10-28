@@ -167,6 +167,12 @@ const configuration: Configuration = {
     loadExistingGrant,
     interactions: {
         async url(ctx, interaction) {
+            if (ctx.oidc.requestParamScopes.size === 0) {
+                throw new OAuthInteractionInvalidError(
+                    "At least one scope must be requested."
+                );
+            }
+
             const session = await auth.api
                 .getSession({
                     headers: ctx.req.headers as Record<string, string>,
