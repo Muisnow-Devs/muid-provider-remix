@@ -21,7 +21,6 @@ class GrantAdapter implements Adapter {
         payload: AdapterPayload,
         _expiresIn: number
     ): Promise<void> {
-        console.log("Upserting Grant:", { id, payload });
         await prisma.oauthConsent.upsert({
             where: { id },
             create: {
@@ -149,7 +148,6 @@ class GrantAdapter implements Adapter {
      * Destroy/delete a Grant instance
      */
     async destroy(id: string): Promise<void> {
-        console.log("Destroying Grant:", { id });
         await prisma.oauthConsent
             .delete({
                 where: { id },
@@ -164,7 +162,6 @@ class GrantAdapter implements Adapter {
      * In this case, we'll search by the id itself or clientId+userId combination
      */
     async revokeByGrantId(grantId: string): Promise<void> {
-        console.log("Revoking Grants by grantId:", { grantId });
         await prisma.oauthConsent.deleteMany({
             where: { id: grantId },
         });
