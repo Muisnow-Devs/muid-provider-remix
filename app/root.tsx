@@ -12,6 +12,7 @@ import "./app.css";
 import { Providers } from "./provider";
 
 export const links: Route.LinksFunction = () => [
+    { rel: "preconnect", href: "https://objects.sanziusercontent.com" },
     { rel: "preconnect", href: "https://fonts.googleapis.com" },
     {
         rel: "preconnect",
