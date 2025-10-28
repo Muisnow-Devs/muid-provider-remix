@@ -68,17 +68,11 @@ export const auth = betterAuth({
 async function sendDeleteAccountVerification({
     user,
     url,
-    token,
 }: {
     user: User;
     url: string;
-    token: string;
 }) {
     const name = user.name || user.email.split("@")[0];
-    logger.info(
-        `[Delete Account] Sending delete account verification email to ${user.email}: ${token}`
-    );
-
     const subject = "Verify your account deletion";
     await enqueue({
         type: "email.sent",
@@ -104,10 +98,6 @@ async function sendVerificationEmail({
     token: string;
 }) {
     const name = user.name || user.email.split("@")[0];
-    logger.info(
-        `[Email Verification] Sending verification email to ${user.email}: ${token}`
-    );
-
     const subject = "Verify your email address";
     await enqueue({
         type: "email.sent",
@@ -132,8 +122,6 @@ async function sendVerificationOTP({
     otp: string;
     type: "sign-in" | "email-verification" | "forget-password";
 }) {
-    logger.info(`[Email OTP] Sending ${type} OTP to ${email}`);
-
     const subject =
         type === "sign-in" ? "Your login OTP" : "Your verification OTP";
     await enqueue({

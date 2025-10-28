@@ -1,4 +1,8 @@
-import Provider, { Configuration, KoaContextWithOIDC } from "oidc-provider";
+import Provider, {
+    Configuration,
+    errors,
+    KoaContextWithOIDC,
+} from "oidc-provider";
 import RedisAdapter from "./adapters/RedisAdaper";
 import DatabaseAdapter from "./adapters/DatabaseAdapter";
 import ClientAdapter from "./adapters/ClientAdapter";
@@ -112,13 +116,11 @@ const configuration: Configuration = {
     expiresWithSession: () => false,
     renderError: async (ctx, out, error) => {
         console.error("OIDC Provider error:", error);
-        if (error instanceof OAuthInteractionInvalidError) {
-            ctx.status = 400;
-            ctx.body = {
-                error: "invalid_request",
-                error_description: error.message,
-            };
-        }
+        ctx.redirect(
+            `/authorize/error?type=${encodeURIComponent(
+                error.name
+            )}&detail=${encodeURIComponent((error instanceof errors.OIDCProviderError && error.error_description) || error.message)}`
+        );
     },
 
     ttl: {

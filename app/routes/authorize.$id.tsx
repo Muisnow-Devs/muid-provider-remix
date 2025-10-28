@@ -34,6 +34,13 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         throw new Response("Missing interaction id", { status: 400 });
     }
 
+    if (id === "error") {
+        const url = new URL(request.url);
+        const type = url.searchParams.get("type") || "unknown_error";
+        const detail = url.searchParams.get("detail") || "No details provided";
+        throw new Response(detail, { status: 400 });
+    }
+
     const interaction = await provider.Interaction.find(id);
     if (!interaction) {
         throw new Response("Interaction not found", { status: 404 });
@@ -299,10 +306,10 @@ export function ErrorBoundary() {
                         this is an error, contact the application owner. Below
                         is more information about the error.
                     </p>
-                    <pre className="mt-4 rounded bg-gray-100 dark:bg-gray-800 p-4 overflow-x-auto text-sm">
+                    <p className="mt-4 rounded bg-gray-100 dark:bg-gray-800 p-4 overflow-x-auto text-sm wrap-break-word w-full font-mono">
                         {isRouteErrorResponse(error) &&
                             (error.data || "Unknown error")}
-                    </pre>
+                    </p>
                 </CardContent>
                 <CardFooter className="gap-2 flex flex-col">
                     <Button className="w-full">Go to Home</Button>

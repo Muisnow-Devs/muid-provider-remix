@@ -16,7 +16,11 @@ class ClientAdapter implements Adapter {
     /**
      * Upsert a client (used during dynamic client registration)
      */
-    async upsert(id: string, payload: AdapterPayload, _expiresIn: number): Promise<void> {
+    async upsert(
+        id: string,
+        payload: AdapterPayload,
+        _expiresIn: number
+    ): Promise<void> {
         // Extract client metadata from payload
 
         await prisma.oauthApplication.upsert({
@@ -24,7 +28,7 @@ class ClientAdapter implements Adapter {
             create: {
                 id: crypto.randomUUID(),
                 clientId: id,
-                clientSecret: payload.client_secret,
+                clientSecret: payload.client_secret || "",
                 name: payload.client_name || "Unnamed Client",
                 icon: payload.logo_uri,
                 redirectURLs: payload.redirect_uris?.join(",") || "",
@@ -61,7 +65,7 @@ class ClientAdapter implements Adapter {
             client_secret: client.clientSecret,
             client_name: client.name || undefined,
             logo_uri: client.icon || undefined,
-            redirect_uris: client.redirectURLs?.split(",") || [],
+            redirect_uris: client.redirectURLs.split(",") || [],
             application_type: client.type || "web",
             grant_types: ["authorization_code", "refresh_token"],
             response_types: ["code"],
@@ -72,7 +76,9 @@ class ClientAdapter implements Adapter {
     /**
      * Not used for Client model
      */
-    async findByUserCode(_userCode: string): Promise<AdapterPayload | undefined> {
+    async findByUserCode(
+        _userCode: string
+    ): Promise<AdapterPayload | undefined> {
         return undefined;
     }
 
@@ -94,11 +100,13 @@ class ClientAdapter implements Adapter {
      * Delete a client
      */
     async destroy(id: string): Promise<void> {
-        await prisma.oauthApplication.delete({
-            where: { clientId: id },
-        }).catch(() => {
-            // Ignore if not found
-        });
+        await prisma.oauthApplication
+            .delete({
+                where: { clientId: id },
+            })
+            .catch(() => {
+                // Ignore if not found
+            });
     }
 
     /**
