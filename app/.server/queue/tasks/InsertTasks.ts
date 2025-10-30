@@ -3,6 +3,7 @@ import { AppEventMap, AppQueueEvent } from "./ProcessData";
 import QueueTask from "./QueueTask";
 import prisma from "@/.server/prisma";
 import { enqueue } from "../webhook";
+import { OIDC_CLAIMS } from "@/.server/oidc";
 
 export class InsertTasks extends QueueTask {
     override async process(
@@ -27,28 +28,42 @@ export class InsertTasks extends QueueTask {
     }
 
     private async fetchClients(userId: string, clients?: string[]) {
+        const formatedClients: Record<string, string[]> = {};
+
+        let fetchedClients = [
+            ...(clients?.map((c) => ({ clientId: c, scopes: "" })) || []),
+        ];
         if (!clients || clients.length === 0) {
-            clients = await prisma.oauthConsent
-                .findMany({
-                    where: { userId },
-                    select: { clientId: true },
-                })
-                .then((res) => {
-                    return res.map((r) => r.clientId);
-                });
+            fetchedClients = await prisma.oauthConsent.findMany({
+                where: { userId },
+                select: { clientId: true, scopes: true },
+            });
         }
 
-        const foundClients = await prisma.oauthApplication.findMany({
-            where: {
-                clientId: { in: clients },
-                webhook: { not: null },
-            },
-            select: { id: true, webhook: true },
-        });
+        for (const c of fetchedClients) {
+            formatedClients[c.clientId] = c.scopes.split(" ");
+        }
+
+        const foundClients = await prisma.oauthApplication
+            .findMany({
+                where: {
+                    clientId: { in: Object.keys(formatedClients) },
+                    webhook: { not: null },
+                },
+                select: { clientId: true, webhook: true },
+            })
+            .then((apps) =>
+                apps.map((app) => ({
+                    clientId: app.clientId,
+                    webhook: app.webhook!,
+                    scopes: formatedClients[app.clientId],
+                }))
+            );
 
         return foundClients.filter((r) => r.webhook !== null) as {
-            id: string;
+            clientId: string;
             webhook: string;
+            scopes: string[];
         }[];
     }
 
@@ -60,7 +75,7 @@ export class InsertTasks extends QueueTask {
         for (const client of clients) {
             await this.placeQueue({
                 userId: payload.userId,
-                clientId: client.id,
+                clientId: client.clientId,
                 type: "user.deleted",
                 url: client.webhook,
                 payload: {},
@@ -85,12 +100,25 @@ export class InsertTasks extends QueueTask {
     private async doUpdate(payload: AppEventMap["uesr.updated"]) {
         const clients = await this.fetchClients(payload.userId);
         for (const client of clients) {
+            const allowedClaims = client.scopes.flatMap(
+                (scope) => OIDC_CLAIMS[scope as keyof typeof OIDC_CLAIMS] || []
+            );
+            const changes = Object.fromEntries(
+                Object.entries(payload.changes).filter(([key]) =>
+                    allowedClaims.includes(key)
+                )
+            );
+
+            if (Object.keys(changes).length === 0) {
+                continue;
+            }
+
             await this.placeQueue({
                 userId: payload.userId,
-                clientId: client.id,
+                clientId: client.clientId,
                 type: "uesr.updated",
                 url: client.webhook,
-                payload: payload.changes,
+                payload: changes,
             });
         }
     }

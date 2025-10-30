@@ -20,6 +20,8 @@ export class SendWebhookEvent extends QueueTask {
         });
         const signature = await calculateWebhookSignature(data);
 
+        console.log("Sending webhook to", job.data.payload.url);
+
         await fetch(job.data.payload.url, {
             method: "POST",
             headers: {

@@ -48,9 +48,7 @@ const workers = [
         unknown: new DefaultTask(),
     }),
     generateWorkers(QueueNames.CLIENT_EVENTS, {
-        "uesr.updated": new SendWebhookEvent(),
-        "user.deleted": new SendWebhookEvent(),
-        "user.revoked": new SendWebhookEvent(),
+        "webhook.sent": new SendWebhookEvent(),
         unknown: new DefaultTask(),
     }),
 ];

@@ -15,6 +15,11 @@ import { auth } from "./auth";
 import { getEpochTime } from "@/lib/utils";
 
 export const runtime = "nodejs";
+export const OIDC_CLAIMS = {
+    openid: ["sub"],
+    profile: ["name", "picture", "preferred_username", "username"],
+    email: ["email", "email_verified"],
+};
 
 const issuer = process.env.OIDC_ISSUER || "http://localhost:3000";
 
@@ -50,11 +55,7 @@ const configuration: Configuration = {
     },
 
     // Supported claims
-    claims: {
-        openid: ["sub"],
-        profile: ["name", "picture", "preferred_username"],
-        email: ["email", "email_verified"],
-    },
+    claims: OIDC_CLAIMS,
 
     // Supported features
     features: {
@@ -150,6 +151,7 @@ const configuration: Configuration = {
 
                 if (scope.includes("profile")) {
                     claims.preferred_username = user.username;
+                    claims.username = user.username;
                     claims.name = user.name;
                     claims.picture = user.image;
                 }

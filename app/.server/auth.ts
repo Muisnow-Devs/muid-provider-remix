@@ -9,7 +9,6 @@ import {
     emailOTP,
 } from "better-auth/plugins";
 import prisma from "./prisma";
-import logger from "./logger";
 import { enqueue } from "./queue/default";
 import emailVerificationTemplate, {
     EmailType,
@@ -63,6 +62,21 @@ export const auth = betterAuth({
             }
         },
     },
+    databaseHooks: {
+        user: {
+            update: {
+                after: async (user, changes) => {
+                    await enqueue({
+                        type: "uesr.updated",
+                        payload: {
+                            userId: user.id,
+                            changes: changes?.body || {},
+                        },
+                    });
+                }
+            }
+        }
+    }
 });
 
 async function sendDeleteAccountVerification({

@@ -87,17 +87,17 @@ model Verification {
 }
 
 model Passkey {
-  id           String    @id
+  id           String   @id
   name         String?
   publicKey    String
   userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   credentialID String
   counter      Int
   deviceType   String
   backedUp     Boolean
   transports   String?
-  createdAt    DateTime?
+  createdAt    DateTime @default(now())
   aaguid       String?
 
   @@map("passkey")
@@ -115,8 +115,8 @@ model OauthApplication {
   disabled      Boolean?       @default(false)
   userId        String?
   user          User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt     DateTime?      @default(now())
-  updatedAt     DateTime?      @default(now()) @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
   oauthconsents OauthConsent[]
 
   webhook String?
@@ -132,8 +132,8 @@ model OauthConsent {
   userId           String
   user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   scopes           String           @db.Text
-  createdAt        DateTime?        @default(now())
-  updatedAt        DateTime?        @default(now()) @updatedAt
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @default(now()) @updatedAt
   consentGiven     Boolean?
   OidcModel        OidcModel[]
 

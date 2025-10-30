@@ -3,6 +3,17 @@ import prisma from "@/.server/prisma";
 import { enqueue } from "@/.server/queue/default";
 import { ApplicationIcon, ApplicationScopes } from "@/components/application";
 import { authClient } from "@/components/auth-client";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -10,8 +21,9 @@ import {
     CardFooter,
     CardHeader,
 } from "@/components/ui/card";
+import handleRequest from "@/entry.server";
 import { CircleQuestionMarkIcon } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
     ActionFunctionArgs,
     LoaderFunctionArgs,
@@ -132,41 +144,89 @@ export default function AccountConnectRoute() {
             )}
 
             {data.connectedApps.map((app, index) => (
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center gap-4 mb-2">
-                            <ApplicationIcon
-                                icon={app.oauthapplication!.icon}
-                                name={
-                                    app.oauthapplication!.name ??
-                                    "OAuth Application"
-                                }
-                            />
-                            <h2>{app.oauthapplication!.name}</h2>
-                        </div>
-                        <p>
-                            Connected At:{" "}
-                            {new Date(app.createdAt!).toLocaleString()}
-                        </p>
-                    </CardHeader>
-                    <CardContent>
-                        <h3 className="text-xl mb-2">Granted Scopes:</h3>
-                        <ApplicationScopes
-                            scopes={app.scopes.map((e) => data.scopesData[e])}
+                <AuthorizedApplicationCard
+                    key={index}
+                    detail={app.oauthapplication}
+                    createdAt={app.createdAt}
+                    scopes={app.scopes.map((s) => data.scopesData[s])}
+                    handleRevoke={() => handleRevoke(app.clientId)}
+                />
+            ))}
+        </div>
+    );
+}
+
+interface AuthorizedApplicationCardProps {
+    detail: {
+        name: string | null;
+        metadata: string | null;
+        icon: string | null;
+    };
+    scopes: { id: string; name: string; description: string | null }[];
+    createdAt: Date;
+    handleRevoke: () => void;
+}
+
+function AuthorizedApplicationCard({
+    detail,
+    createdAt,
+    scopes,
+    handleRevoke,
+}: AuthorizedApplicationCardProps) {
+    const [isShowAlert, setIsShowAlert] = useState(false);
+
+    return (
+        <AlertDialog>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>
+                        Are you absolutely sure?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action is irreversible. Revoking the application's
+                        access may also cause the application to delete any data
+                        linked to your MuID account.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel className="cursor-pointer">
+                        Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                        className="bg-destructive text-white hover:bg-rose-800 cursor-pointer"
+                        onClick={() => handleRevoke()}
+                    >
+                        Continue
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-4 mb-2">
+                        <ApplicationIcon
+                            icon={detail.icon}
+                            name={detail.name ?? "OAuth Application"}
                         />
-                    </CardContent>
-                    <CardFooter className="flex justify-end">
+                        <h2>{detail.name}</h2>
+                    </div>
+                    <p>Connected At: {new Date(createdAt).toLocaleString()}</p>
+                </CardHeader>
+                <CardContent>
+                    <h3 className="text-xl mb-2">Granted Scopes:</h3>
+                    <ApplicationScopes scopes={scopes} />
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                    <AlertDialogTrigger asChild>
                         <Button
                             variant="destructive"
-                            onClick={() =>
-                                app.clientId && handleRevoke(app.clientId)
-                            }
+                            className="cursor-pointer"
                         >
                             Revoke Access
                         </Button>
-                    </CardFooter>
-                </Card>
-            ))}
-        </div>
+                    </AlertDialogTrigger>
+                </CardFooter>
+            </Card>
+        </AlertDialog>
     );
 }
