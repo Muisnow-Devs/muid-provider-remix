@@ -25,6 +25,13 @@ export interface AppEventMap {
         sending?: WebhookUrlPayload;
     };
     "email.sent": { to: string; subject: string; body: string };
+    "webhook.sent": {
+        userId: string;
+        clientId: string;
+        type: string;
+        url: string;
+        payload: any;
+    };
     unknown: unknown;
 }
 

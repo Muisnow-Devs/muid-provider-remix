@@ -13,80 +13,99 @@ export class InsertTasks extends QueueTask {
         super.process(job);
 
         const { type, payload } = job.data;
-        let clients: { id: string; webhook: string }[] = [];
         switch (type) {
             case "user.deleted":
-                const deletedPayload = payload as AppEventMap["user.deleted"];
-                clients = (
-                    await prisma.oauthApplication.findMany({
-                        where: {
-                            clientId: { in: deletedPayload.clients },
-                            webhook: { not: null },
-                        },
-                        select: { id: true, webhook: true },
-                    })
-                ).filter((r) => r.webhook !== null) as {
-                    id: string;
-                    webhook: string;
-                }[];
-
-                deletedPayload.clients = [];
+                await this.doDelete(payload as AppEventMap["user.deleted"]);
                 break;
-
-            case "uesr.updated":
-                const clientIds = await prisma.oauthConsent.findMany({
-                    where: { userId: payload.userId },
-                    select: { clientId: true },
-                });
-
-                clients = (
-                    await prisma.oauthApplication.findMany({
-                        where: {
-                            id: { in: clientIds.map((c) => c.clientId) },
-                            webhook: { not: null },
-                        },
-                        select: { id: true, webhook: true },
-                    })
-                ).filter((r) => r.webhook !== null) as {
-                    id: string;
-                    webhook: string;
-                }[];
-
-                break;
-
             case "user.revoked":
-                const revokedPayload = payload as AppEventMap["user.revoked"];
-                const client = await prisma.oauthApplication.findUnique({
-                    where: {
-                        clientId: revokedPayload.clientId,
-                        webhook: { not: null },
-                    },
-                    select: { id: true, webhook: true },
-                });
-                clients = client
-                    ? [client as { id: string; webhook: string }]
-                    : [];
+                await this.doRevoke(payload as AppEventMap["user.revoked"]);
+                break;
+            case "uesr.updated":
+                await this.doUpdate(payload as AppEventMap["uesr.updated"]);
                 break;
         }
+    }
 
+    private async fetchClients(userId: string, clients?: string[]) {
+        if (!clients || clients.length === 0) {
+            clients = await prisma.oauthConsent
+                .findMany({
+                    where: { userId },
+                    select: { clientId: true },
+                })
+                .then((res) => {
+                    return res.map((r) => r.clientId);
+                });
+        }
+
+        const foundClients = await prisma.oauthApplication.findMany({
+            where: {
+                clientId: { in: clients },
+                webhook: { not: null },
+            },
+            select: { id: true, webhook: true },
+        });
+
+        return foundClients.filter((r) => r.webhook !== null) as {
+            id: string;
+            webhook: string;
+        }[];
+    }
+
+    private async doDelete(payload: AppEventMap["user.deleted"]) {
+        const clients = await this.fetchClients(
+            payload.userId,
+            payload.clients
+        );
         for (const client of clients) {
-            await enqueue({
-                type,
-                payload: {
-                    ...payload,
-                    sending: {
-                        url: client.webhook,
-                        clientId: client.id,
-                    },
-                },
-                opts: {
-                    attempts: 5,
-                    backoff: {
-                        type: "exponential",
-                        delay: 1000,
-                    },
-                },
+            await this.placeQueue({
+                userId: payload.userId,
+                clientId: client.id,
+                type: "user.deleted",
+                url: client.webhook,
+                payload: {},
             });
         }
+    }
+
+    private async doRevoke(payload: AppEventMap["user.revoked"]) {
+        const clients = await this.fetchClients(payload.userId, [
+            payload.clientId,
+        ]);
+
+        await this.placeQueue({
+            userId: payload.userId,
+            clientId: payload.clientId,
+            type: "user.revoked",
+            url: clients[0]?.webhook || "",
+            payload: {},
+        });
+    }
+
+    private async doUpdate(payload: AppEventMap["uesr.updated"]) {
+        const clients = await this.fetchClients(payload.userId);
+        for (const client of clients) {
+            await this.placeQueue({
+                userId: payload.userId,
+                clientId: client.id,
+                type: "uesr.updated",
+                url: client.webhook,
+                payload: payload.changes,
+            });
+        }
+    }
+
+    private async placeQueue(payload: AppEventMap["webhook.sent"]) {
+        await enqueue({
+            type: "webhook.sent",
+            payload,
+            opts: {
+                attempts: 5,
+                backoff: {
+                    type: "exponential",
+                    delay: 1000,
+                },
+            },
+        });
     }
 }
