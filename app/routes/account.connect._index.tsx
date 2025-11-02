@@ -149,7 +149,7 @@ export default function AccountConnectRoute() {
             {data.connectedApps.map((app, index) => (
                 <AuthorizedApplicationCard
                     key={index}
-                    id={app.id}
+                    id={app.clientId}
                     detail={app.oauthapplication}
                     createdAt={app.createdAt}
                     scopes={app.scopes.map((s) => data.scopesData[s])}
