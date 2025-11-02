@@ -1,13 +1,16 @@
+import { BadgeCheckIcon } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
+import { Badge } from "./ui/badge";
 
 interface ApplicationIconProps {
+    clientId: string;
     icon: string | null;
     name: string;
 }
 
-export function ApplicationIcon({ icon, name }: ApplicationIconProps) {
+export function ApplicationIcon({ clientId, icon, name }: ApplicationIconProps) {
     return (
-        <>
+        <div className="flex flex-col items-center gap-4 relative">
             {icon && (
                 <img
                     src={icon}
@@ -24,7 +27,15 @@ export function ApplicationIcon({ icon, name }: ApplicationIconProps) {
                     </span>
                 </div>
             )}
-        </>
+
+            {clientId.endsWith("service.sanzi.io") && <Badge
+                variant="secondary"
+                className="bg-blue-500 text-white dark:bg-blue-600 absolute bottom-0 right-1/2 transform translate-y-1/2 translate-x-1/2"
+            >
+                <BadgeCheckIcon />
+                Official
+            </Badge>}
+        </div>
     );
 }
 

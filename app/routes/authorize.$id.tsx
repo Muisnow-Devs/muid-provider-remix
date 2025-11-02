@@ -115,6 +115,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     return data(
         {
             client: {
+                id: client.clientId,
                 name: client.name || client.clientId!,
                 logo: client.icon || undefined,
                 scopes: scopeData,
@@ -228,6 +229,7 @@ export default function AuthorizePage() {
                 <CardHeader className="text-center pb-4">
                     <div className="flex items-center mb-2 gap-4 justify-center">
                         <ApplicationIcon
+                            clientId={data.client.id}
                             icon={data.client.logo || null}
                             name={data.client.name}
                         />

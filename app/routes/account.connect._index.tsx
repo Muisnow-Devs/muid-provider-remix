@@ -107,7 +107,7 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     const clientId = grant?.clientId;
-    grant && await grant.destroy();
+    grant && (await grant.destroy());
 
     await enqueue({
         type: "user.revoked",
@@ -149,6 +149,7 @@ export default function AccountConnectRoute() {
             {data.connectedApps.map((app, index) => (
                 <AuthorizedApplicationCard
                     key={index}
+                    id={app.id}
                     detail={app.oauthapplication}
                     createdAt={app.createdAt}
                     scopes={app.scopes.map((s) => data.scopesData[s])}
@@ -160,6 +161,7 @@ export default function AccountConnectRoute() {
 }
 
 interface AuthorizedApplicationCardProps {
+    id: string;
     detail: {
         name: string | null;
         metadata: string | null;
@@ -171,6 +173,7 @@ interface AuthorizedApplicationCardProps {
 }
 
 function AuthorizedApplicationCard({
+    id,
     detail,
     createdAt,
     scopes,
@@ -206,6 +209,7 @@ function AuthorizedApplicationCard({
                 <CardHeader>
                     <div className="flex items-center gap-4 mb-2">
                         <ApplicationIcon
+                            clientId={id}
                             icon={detail.icon}
                             name={detail.name ?? "OAuth Application"}
                         />
