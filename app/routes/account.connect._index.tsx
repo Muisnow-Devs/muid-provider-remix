@@ -1,4 +1,5 @@
 import { checkSession } from "@/.server/auth";
+import provider from "@/.server/oidc";
 import prisma from "@/.server/prisma";
 import { enqueue } from "@/.server/queue/default";
 import { ApplicationIcon, ApplicationScopes } from "@/components/application";
@@ -42,6 +43,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     const clientData = await prisma.oauthConsent.findMany({
         select: {
+            id: true,
             clientId: true,
             scopes: true,
             createdAt: true,
@@ -95,22 +97,23 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
     const form = await request.formData();
-    const appId = form.get("appId") as string;
+    const grantId = form.get("grantId") as string;
 
     const session = await checkSession(request);
+    const grant = await provider.Grant.find(grantId);
 
-    await prisma.oauthConsent.deleteMany({
-        where: {
-            userId: session.user.id,
-            clientId: appId,
-        },
-    });
+    if (!grant || grant.accountId !== session.user.id) {
+        return null;
+    }
+
+    const clientId = grant?.clientId;
+    grant && await grant.destroy();
 
     await enqueue({
         type: "user.revoked",
         payload: {
             userId: session.user.id,
-            clientId: appId,
+            clientId: clientId ?? "",
         },
     });
 
@@ -128,9 +131,9 @@ export default function AccountConnectRoute() {
         navigate(".");
     }, [auth.data, fetcher.state]);
 
-    function handleRevoke(appId: string) {
+    function handleRevoke(id: string) {
         const formData = new FormData();
-        formData.append("appId", appId);
+        formData.append("grantId", id);
         fetcher.submit(formData, { method: "DELETE" });
     }
 
@@ -149,7 +152,7 @@ export default function AccountConnectRoute() {
                     detail={app.oauthapplication}
                     createdAt={app.createdAt}
                     scopes={app.scopes.map((s) => data.scopesData[s])}
-                    handleRevoke={() => handleRevoke(app.clientId)}
+                    handleRevoke={() => handleRevoke(app.id)}
                 />
             ))}
         </div>
@@ -173,8 +176,6 @@ function AuthorizedApplicationCard({
     scopes,
     handleRevoke,
 }: AuthorizedApplicationCardProps) {
-    const [isShowAlert, setIsShowAlert] = useState(false);
-
     return (
         <AlertDialog>
             <AlertDialogContent>

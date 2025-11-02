@@ -63,14 +63,10 @@ const configuration: Configuration = {
         registration: { enabled: false },
         revocation: { enabled: true }, // Enable token revocation
         introspection: { enabled: true }, // Enable token introspection
+        jwtUserinfo: { enabled: true },
         resourceIndicators: {
             enabled: true,
-            useGrantedResource: async (ctx, model) => {
-                if (!ctx.oidc.params?.resource) {
-                    return false;
-                }
-                return true;
-            },
+            useGrantedResource: () => true,
             defaultResource: () => "https://api.muisnowdevs.one",
             async getResourceServerInfo(ctx, indicator, client) {
                 if (!indicator)
@@ -101,14 +97,8 @@ const configuration: Configuration = {
                 }
 
                 return {
-                    audience: "https://api.muisnowdevs.one",
                     scope: scopes.map((s) => s.id).join(" "),
-                    accessTokenFormat: "jwt",
-                    jwt: {
-                        sign: {
-                            alg: "RS256",
-                        },
-                    },
+                    accessTokenFormat: "opaque",
                 };
             },
         },
@@ -134,37 +124,8 @@ const configuration: Configuration = {
         Session: 5 * 60,
     },
 
-    findAccount: async (ctx, id) => {
-        const user = await prisma.user.findUnique({
-            where: { id },
-        });
-
-        if (!user) return undefined;
-
-        return {
-            accountId: id,
-            async claims(use, scope) {
-                const claims: {
-                    sub: string;
-                    [key: string]: unknown;
-                } = { sub: id };
-
-                if (scope.includes("profile")) {
-                    claims.preferred_username = user.username;
-                    claims.username = user.username;
-                    claims.name = user.name;
-                    claims.picture = user.image;
-                }
-
-                if (scope.includes("email")) {
-                    claims.email = user.email;
-                    claims.email_verified = user.emailVerified;
-                }
-
-                return claims;
-            },
-        };
-    },
+    findAccount: async (ctx, id) => getUserInfoByScopes(id),
+    revokeGrantPolicy: () => false,
 
     loadExistingGrant,
     interactions: {
@@ -236,4 +197,37 @@ provider.on("grant.error", (ctx, error) => {
     logger.error("OIDC Provider grant error:", { error });
 });
 
+async function getUserInfoByScopes(id: string) {
+    const user = await prisma.user.findUnique({
+        where: { id },
+    });
+
+    if (!user) return undefined;
+
+    return {
+        accountId: id,
+        async claims(use: string, scope: string) {
+            const claims: {
+                sub: string;
+                [key: string]: unknown;
+            } = { sub: id };
+
+            if (scope.includes("profile")) {
+                claims.preferred_username = user.username;
+                claims.username = user.username;
+                claims.name = user.name;
+                claims.picture = user.image;
+            }
+
+            if (scope.includes("email")) {
+                claims.email = user.email;
+                claims.email_verified = user.emailVerified;
+            }
+
+            return claims;
+        },
+    };
+}
+
+export { getUserInfoByScopes };
 export default provider;
