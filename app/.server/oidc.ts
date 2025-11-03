@@ -67,11 +67,11 @@ const configuration: Configuration = {
                 if (client.clientId === token.clientId) {
                     return true;
                 }
-                
+
                 if (client.clientId.endsWith(".service.sanzi.io")) {
                     return true;
                 }
-                
+
                 return false;
             },
         },
@@ -167,6 +167,21 @@ const configuration: Configuration = {
     jwks,
 };
 
+async function loadGrantByUserIdClientId(userId?: string, clientId?: string) {
+    if (!userId || !clientId) {
+        return undefined;
+    }
+
+    const grantId = await prisma.oauthConsent
+        .findFirst({
+            where: { userId, clientId },
+            select: { id: true },
+        })
+        .then((g) => g?.id);
+
+    return grantId;
+}
+
 async function loadExistingGrant(ctx: KoaContextWithOIDC) {
     const clientid = ctx.oidc.params?.client_id as string | undefined;
     const accountId = ctx.oidc.session?.accountId;
@@ -178,21 +193,8 @@ async function loadExistingGrant(ctx: KoaContextWithOIDC) {
         return undefined;
     }
 
-    const grantId = await prisma.oauthConsent
-        .findFirst({
-            where: {
-                userId: accountId,
-                clientId: clientid,
-            },
-            select: { id: true },
-        })
-        .then((g) => g?.id);
-
-    if (grantId) {
-        return ctx.oidc.provider.Grant.find(grantId);
-    }
-
-    return undefined;
+    const grantId = await loadGrantByUserIdClientId(accountId, clientid);
+    return grantId ? provider.Grant.find(grantId) : undefined;
 }
 
 const provider = new Provider(issuer, configuration);
@@ -241,5 +243,5 @@ async function getUserInfoByScopes(id: string) {
     };
 }
 
-export { getUserInfoByScopes };
+export { getUserInfoByScopes, loadGrantByUserIdClientId };
 export default provider;

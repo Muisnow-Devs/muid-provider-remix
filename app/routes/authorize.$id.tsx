@@ -1,5 +1,5 @@
 import { checkSession } from "@/.server/auth";
-import provider from "@/.server/oidc";
+import provider, { loadGrantByUserIdClientId } from "@/.server/oidc";
 import prisma from "@/.server/prisma";
 import { commitCSRFToken, validateCSRFToken } from "@/.server/security";
 import { ApplicationIcon, ApplicationScopes } from "@/components/application";
@@ -46,6 +46,44 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         throw new Response("Interaction not found", { status: 404 });
     }
 
+    const session = await checkSession(request);
+
+    if (
+        interaction.prompt.name === "login" ||
+        interaction.session?.accountId != session.user.id
+    ) {
+        interaction.result = {
+            login: { accountId: session.user.id, remember: false },
+        };
+
+        await interaction.save(interaction.exp - getEpochTime());
+        return redirectDocument(interaction.returnTo, 303);
+    }
+
+    if (!interaction.grantId) {
+        const grant = await loadGrantByUserIdClientId(
+            interaction.session?.accountId,
+            interaction.params.client_id as string | undefined
+        );
+        if (grant) {
+            interaction.grantId = grant;
+            await interaction.save(interaction.exp - getEpochTime());
+            return redirectDocument(interaction.returnTo, 303);
+        }
+    }
+
+    const clientId = interaction.params.client_id as string | undefined;
+    if (!clientId) {
+        throw new Response("Interaction client_id not found", { status: 400 });
+    }
+
+    const client = await prisma.oauthApplication.findUnique({
+        where: { clientId },
+    });
+    if (!client) {
+        throw new Response("Client not found", { status: 404 });
+    }
+
     const scopes = (
         (interaction.params.scope as string) ?? "openid profile email"
     ).split(" ");
@@ -68,32 +106,6 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         );
     }
 
-    const session = await checkSession(request);
-
-    if (
-        interaction.prompt.name === "login" ||
-        interaction.session?.accountId != session.user.id
-    ) {
-        interaction.result = {
-            login: { accountId: session.user.id, remember: false },
-        };
-
-        await interaction.save(interaction.exp - getEpochTime());
-        return redirectDocument(interaction.returnTo, 303);
-    }
-
-    const clientId = interaction.params.client_id as string | undefined;
-    if (!clientId) {
-        throw new Response("Interaction client_id not found", { status: 400 });
-    }
-
-    const client = await prisma.oauthApplication.findUnique({
-        where: { clientId },
-    });
-    if (!client) {
-        throw new Response("Client not found", { status: 404 });
-    }
-
     const missingOIDCScopes = interaction.prompt.details?.missingOIDCScope as
         | string[]
         | undefined;
@@ -111,7 +123,6 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     ];
 
     const csrf = await commitCSRFToken(request.headers);
-
     return data(
         {
             client: {
@@ -168,18 +179,13 @@ export async function action({ params: pm, request }: LoaderFunctionArgs) {
         prompt: { name, details: promptDetails },
     } = interaction;
 
-    const grantId = await prisma.oauthConsent
-        .findFirst({
-            where: {
-                userId: interaction.session?.accountId!,
-                clientId: interaction.params.client_id! as string,
-            },
-            select: { id: true },
-        })
-        .then((g) => g?.id);
+    const existingGrant = await loadGrantByUserIdClientId(
+        interaction.session?.accountId,
+        interaction.params.client_id as string | undefined
+    );
 
     const grant =
-        (grantId ? await provider.Grant.find(grantId) : null) ??
+        (existingGrant ? await provider.Grant.find(existingGrant) : null) ??
         new provider.Grant({
             accountId: interaction.session?.accountId!,
             clientId: interaction.params.client_id! as string,
