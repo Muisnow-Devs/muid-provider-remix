@@ -43,7 +43,10 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
     const interaction = await provider.Interaction.find(id);
     if (!interaction) {
-        throw new Response("Interaction not found", { status: 404 });
+        throw new Response(
+            "Interaction not found, the session might be expired. Please start a new session.",
+            { status: 404 }
+        );
     }
 
     const session = await checkSession(request);
