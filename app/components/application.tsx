@@ -28,7 +28,7 @@ export function ApplicationIcon({ clientId, icon, name }: ApplicationIconProps) 
                 </div>
             )}
 
-            {clientId.endsWith("service.sanzi.io") && <Badge
+            {clientId.endsWith(".service.sanzi.io") && <Badge
                 variant="secondary"
                 className="bg-blue-500 text-white dark:bg-blue-600 absolute bottom-0 right-1/2 transform translate-y-1/2 translate-x-1/2"
             >

@@ -61,8 +61,20 @@ const configuration: Configuration = {
     features: {
         devInteractions: { enabled: false }, // Disable default dev UI
         registration: { enabled: false },
-        revocation: { enabled: true }, // Enable token revocation
-        introspection: { enabled: true }, // Enable token introspection
+        introspection: {
+            enabled: true,
+            allowedPolicy: (ctx, client, token) => {
+                if (client.clientId === token.clientId) {
+                    return true;
+                }
+                
+                if (client.clientId.endsWith(".service.sanzi.io")) {
+                    return true;
+                }
+                
+                return false;
+            },
+        },
         jwtUserinfo: { enabled: true },
         resourceIndicators: {
             enabled: true,
