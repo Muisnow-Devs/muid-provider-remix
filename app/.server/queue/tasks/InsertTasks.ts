@@ -4,6 +4,7 @@ import QueueTask from "./QueueTask";
 import prisma from "@/.server/prisma";
 import { enqueue } from "../webhook";
 import { OIDC_CLAIMS } from "@/.server/oidc";
+import { ClientDetails, findClient } from "@/.server/cache/clients";
 
 export class InsertTasks extends QueueTask {
     override async process(
@@ -44,21 +45,16 @@ export class InsertTasks extends QueueTask {
             formatedClients[c.clientId] = c.scopes.split(" ");
         }
 
-        const foundClients = await prisma.oauthApplication
-            .findMany({
-                where: {
-                    clientId: { in: Object.keys(formatedClients) },
-                    webhook: { not: null },
-                },
-                select: { clientId: true, webhook: true },
-            })
-            .then((apps) =>
-                apps.map((app) => ({
-                    clientId: app.clientId,
-                    webhook: app.webhook!,
-                    scopes: formatedClients[app.clientId],
-                }))
-            );
+        const clientsIds = Object.keys(formatedClients);
+        const foundClients = (
+            await Promise.all(clientsIds.map((id) => findClient(id)))
+        )
+            .filter((app): app is ClientDetails => app !== null)
+            .map((app) => ({
+                clientId: app.clientId,
+                webhook: app.webhook,
+                scopes: formatedClients[app.clientId],
+            }));
 
         return foundClients.filter((r) => r.webhook !== null) as {
             clientId: string;

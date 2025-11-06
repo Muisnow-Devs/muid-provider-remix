@@ -1,4 +1,5 @@
 import { checkSession } from "@/.server/auth";
+import { ClientDetails, findClient } from "@/.server/cache/clients";
 import provider from "@/.server/oidc";
 import prisma from "@/.server/prisma";
 import { enqueue } from "@/.server/queue/default";
@@ -22,9 +23,8 @@ import {
     CardFooter,
     CardHeader,
 } from "@/components/ui/card";
-import handleRequest from "@/entry.server";
 import { CircleQuestionMarkIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
     ActionFunctionArgs,
     LoaderFunctionArgs,
@@ -33,6 +33,18 @@ import {
     useLoaderData,
     useNavigate,
 } from "react-router";
+
+interface SimpleScopesDetails {
+    id: string;
+    name: string;
+    description: string | null;
+}
+
+interface SimpleClientDetails {
+    name: string | null;
+    metadata: Record<string, unknown> | null;
+    icon: string | null;
+}
 
 export const meta: MetaFunction = () => {
     return [{ title: "Connected Applications - MuID" }];
@@ -47,18 +59,25 @@ export async function loader({ request }: LoaderFunctionArgs) {
             clientId: true,
             scopes: true,
             createdAt: true,
-            oauthapplication: {
-                select: {
-                    name: true,
-                    metadata: true,
-                    icon: true,
-                },
-            },
         },
         where: {
             userId: session.user.id,
         },
     });
+    const clientIds = clientData.map((c) => c.clientId);
+    const applications = (
+        await Promise.all(clientIds.map((id) => findClient(id)))
+    )
+        .filter((app): app is ClientDetails => app !== null)
+        .map((app) => ({
+            clientId: app.clientId,
+            metadata: app.metadata,
+            name: app.name,
+            icon: app.icon,
+        }));
+
+    const applicationsMap: Record<string, SimpleClientDetails> =
+        Object.fromEntries(applications.map((app) => [app.clientId, app]));
 
     const scopesList = new Set(
         clientData
@@ -80,15 +99,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
         })
     ).reduce(
         (acc, curr) => ({ ...acc, [curr.id]: curr }),
-        {} as Record<
-            string,
-            { id: string; name: string; description: string | null }
-        >
+        {} as Record<string, SimpleScopesDetails>
     );
 
     return {
         connectedApps: clientData.map((app) => ({
             ...app,
+            oauthapplication: applicationsMap[app.clientId],
             scopes: app.scopes!.split(" "),
         })),
         scopesData,
@@ -162,12 +179,8 @@ export default function AccountConnectRoute() {
 
 interface AuthorizedApplicationCardProps {
     id: string;
-    detail: {
-        name: string | null;
-        metadata: string | null;
-        icon: string | null;
-    };
-    scopes: { id: string; name: string; description: string | null }[];
+    detail: SimpleClientDetails;
+    scopes: SimpleScopesDetails[];
     createdAt: Date;
     handleRevoke: () => void;
 }

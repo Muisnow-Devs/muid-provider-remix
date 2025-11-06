@@ -1,5 +1,7 @@
-import prisma from "./prisma";
-import client from "./redis";
+import prisma from "../prisma";
+import client from "../redis";
+
+const KEY = "muid:server:scopes";
 
 interface ScopeRecord {
     id: string;
@@ -12,7 +14,7 @@ interface Scopes {
 }
 
 export async function serverScopes(): Promise<Scopes> {
-    const redisScopes = await client.get("muid:server:scopes");
+    const redisScopes = await client.get(KEY);
     if (redisScopes) return JSON.parse(redisScopes);
 
     const scopes = await prisma.oidcScope.findMany({
@@ -24,7 +26,7 @@ export async function serverScopes(): Promise<Scopes> {
         scopesMap[scope.id] = scope;
     });
 
-    await client.set("muid:server:scopes", JSON.stringify(scopesMap), "EX", 3600);
+    await client.set(KEY, JSON.stringify(scopesMap), "EX", 3600);
     return scopesMap;
 }
 
@@ -54,4 +56,8 @@ export async function vailidateScope(
         validScopes,
         invalidScopes: invalidScopes.length ? invalidScopes : undefined,
     };
+}
+
+export async function invalidateScopeCache() {
+    await client.del(KEY);
 }

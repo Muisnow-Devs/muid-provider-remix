@@ -1,6 +1,7 @@
 import { checkSession } from "@/.server/auth";
+import { findClient } from "@/.server/cache/clients";
 import provider, { loadGrantByUserIdClientId } from "@/.server/oidc";
-import prisma from "@/.server/prisma";
+import { vailidateScope } from "@/.server/cache/scopes";
 import { commitCSRFToken, validateCSRFToken } from "@/.server/security";
 import { ApplicationIcon, ApplicationScopes } from "@/components/application";
 import { authClient } from "@/components/auth-client";
@@ -80,9 +81,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         throw new Response("Interaction client_id not found", { status: 400 });
     }
 
-    const client = await prisma.oauthApplication.findUnique({
-        where: { clientId },
-    });
+    const client = await findClient(clientId);
     if (!client) {
         throw new Response("Client not found", { status: 404 });
     }
@@ -91,20 +90,10 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         (interaction.params.scope as string) ?? "openid profile email"
     ).split(" ");
 
-    const scopeData = await prisma.oidcScope.findMany({
-        where: { id: { in: scopes } },
-        select: { name: true, description: true, id: true },
-    });
-
-    const requestedScopes = scopes;
-    const foundScopes = scopeData.map((s) => s.id);
-    const invalidScopes = requestedScopes.filter(
-        (s) => !foundScopes.includes(s)
-    );
-
-    if (invalidScopes.length) {
+    const scopeData = await vailidateScope(scopes);
+    if (scopeData.invalidScopes?.length) {
         throw new Response(
-            `Invalid scopes requested: ${invalidScopes.join(", ")}`,
+            `Invalid scopes requested: ${scopeData.invalidScopes.join(", ")}`,
             { status: 400 }
         );
     }
@@ -132,7 +121,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
                 id: client.clientId,
                 name: client.name || client.clientId!,
                 logo: client.icon || undefined,
-                scopes: scopeData,
+                scopes: scopeData.validScopes,
                 missing: missingScopes,
             },
             csrf,

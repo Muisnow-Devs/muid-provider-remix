@@ -1,5 +1,6 @@
 import { Adapter, AdapterPayload } from "oidc-provider";
 import prisma from "../prisma";
+import { findClient, invalidateClientCache } from "../cache/clients";
 
 /**
  * Client Adapter for OIDC Provider
@@ -23,6 +24,7 @@ class ClientAdapter implements Adapter {
     ): Promise<void> {
         // Extract client metadata from payload
 
+        await invalidateClientCache(id);
         await prisma.oauthApplication.upsert({
             where: { clientId: id },
             create: {
@@ -50,22 +52,30 @@ class ClientAdapter implements Adapter {
      * Find a client by client_id
      */
     async find(id: string): Promise<AdapterPayload | undefined> {
-        const client = await prisma.oauthApplication.findUnique({
-            where: { clientId: id },
-        });
+        const client = await findClient(id);
 
         if (!client || client.disabled) {
             return undefined;
+        }
+
+        const secret = await prisma.oauthApplication.findUnique({
+            where: { clientId: id },
+            select: { clientSecret: true },
+        });
+        if (!secret) {
+            throw new Error(
+                `FUCK, Client secret for ${id} not found, but that should not happen`
+            );
         }
 
         // Construct AdapterPayload from database fields
 
         return {
             client_id: client.clientId!,
-            client_secret: client.clientSecret,
+            client_secret: secret.clientSecret,
             client_name: client.name || undefined,
             logo_uri: client.icon || undefined,
-            redirect_uris: client.redirectURLs.split(",") || [],
+            redirect_uris: client.redirectURLs,
             application_type: client.type || "web",
             grant_types: ["authorization_code", "refresh_token"],
             response_types: ["code"],
@@ -100,6 +110,7 @@ class ClientAdapter implements Adapter {
      * Delete a client
      */
     async destroy(id: string): Promise<void> {
+        await invalidateClientCache(id);
         await prisma.oauthApplication
             .delete({
                 where: { clientId: id },

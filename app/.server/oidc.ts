@@ -13,7 +13,7 @@ import prisma from "./prisma";
 import { OAuthInteractionInvalidError } from "@/errors/common";
 import { auth } from "./auth";
 import { getEpochTime } from "@/lib/utils";
-import { vailidateScope } from "./scopes";
+import { vailidateScope } from "./cache/scopes";
 
 export const runtime = "nodejs";
 export const OIDC_CLAIMS = {

@@ -2,6 +2,7 @@ import { Job } from "bullmq";
 import QueueTask from "./QueueTask";
 import { AppQueueEvent } from "./ProcessData";
 import { calculateWebhookSignature } from "@/.server/security";
+import logger from "@/.server/logger";
 
 export class SendWebhookEvent extends QueueTask {
     override async process(
@@ -19,6 +20,12 @@ export class SendWebhookEvent extends QueueTask {
             timestamp: job.data.timestamp,
         });
         const signature = await calculateWebhookSignature(data);
+
+        logger.debug("Sending webhook event", {
+            jobId: job.id,
+            url: job.data.payload.url,
+            signature: signature.signature,
+        });
 
         await fetch(job.data.payload.url, {
             method: "POST",
