@@ -311,12 +311,6 @@ export function ErrorBoundary() {
                             (error.data || "Unknown error")}
                     </p>
                 </CardContent>
-                <CardFooter className="gap-2 flex flex-col">
-                    <Button className="w-full">Go to Home</Button>
-                    {/* <Button variant="outline" className="w-full">
-                        Contact Support
-                    </Button> */}
-                </CardFooter>
             </Card>
         </div>
     );
