@@ -20,7 +20,11 @@ export async function findClient(
     const clientCached = await client.get(key(clientId));
     if (clientCached) {
         if (clientCached === "") return null;
-        return JSON.parse(clientCached) as ClientDetails;
+        try {
+            return JSON.parse(clientCached) as ClientDetails;
+        } catch {
+            await invalidateClientCache(key(clientId));
+        }
     }
 
     const data = await prisma.oauthApplication

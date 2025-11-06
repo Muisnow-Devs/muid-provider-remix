@@ -19,7 +19,7 @@ export async function serverScopes(): Promise<Scopes> {
         try {
             return JSON.parse(redisScopes);
         } catch {
-            await client.del(KEY);
+            await invalidateScopeCache();
         }
     }
 
