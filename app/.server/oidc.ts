@@ -112,7 +112,15 @@ const configuration: Configuration = {
 
     expiresWithSession: () => false,
     renderError: async (ctx, out, error) => {
-        logger.error("OIDC Provider error:", error);
+        if (error instanceof OAuthInteractionInvalidError) {
+            logger.warn(
+                "OIDC Interaction error: missing scopes (this message might not be necessary)",
+                { error: error.message }
+            );
+        } else {
+            logger.error("OIDC Provider error:", error);
+        }
+
         ctx.redirect(
             `/authorize/error?type=${encodeURIComponent(
                 error.name
@@ -130,7 +138,7 @@ const configuration: Configuration = {
         Session: 5 * 60,
     },
 
-    findAccount: async (ctx, id) => getUserInfoByScopes(id),
+    findAccount: async (_, id) => getUserInfoByScopes(id),
     revokeGrantPolicy: () => false,
 
     loadExistingGrant,
@@ -194,7 +202,7 @@ async function loadExistingGrant(ctx: KoaContextWithOIDC) {
 const provider = new Provider(issuer, configuration);
 provider.proxy = true;
 provider.on("server_error", (error) => {
-    logger.error("OIDC Provider server error:", { error: error.error_detail });
+    logger.error("OIDC Provider server error:", { error: error.message });
 });
 
 provider.on("authorization.error", (ctx, error) => {
