@@ -15,16 +15,21 @@ interface Scopes {
 
 export async function serverScopes(): Promise<Scopes> {
     const redisScopes = await client.get(KEY);
-    if (redisScopes) return JSON.parse(redisScopes);
+    if (redisScopes) {
+        try {
+            return JSON.parse(redisScopes);
+        } catch {
+            await client.del(KEY);
+        }
+    }
 
     const scopes = await prisma.oidcScope.findMany({
         select: { id: true, name: true, description: true },
     });
 
-    const scopesMap: Scopes = {};
-    scopes.forEach((scope) => {
-        scopesMap[scope.id] = scope;
-    });
+    const scopesMap: Scopes = Object.fromEntries(
+        scopes.map((scope) => [scope.id, scope])
+    );
 
     await client.set(KEY, JSON.stringify(scopesMap), "EX", 3600);
     return scopesMap;
@@ -35,23 +40,15 @@ interface ValidateScopeResult {
     invalidScopes?: string[];
 }
 
-export async function vailidateScope(
+export async function validateScope(
     scopes: string[]
 ): Promise<ValidateScopeResult> {
     const availableScopes = await serverScopes();
-
-    const validScopes: ScopeRecord[] = [];
-    const invalidScopes: string[] = [];
-    for (const scope of scopes) {
-        const record = availableScopes[scope];
-
-        if (record) {
-            validScopes.push(record);
-            continue;
-        }
-        invalidScopes.push(scope);
-    }
-
+    const validScopes = scopes
+        .map((scope) => availableScopes[scope])
+        .filter(Boolean) as ScopeRecord[];
+    
+    const invalidScopes = scopes.filter((s) => !availableScopes[s]);
     return {
         validScopes,
         invalidScopes: invalidScopes.length ? invalidScopes : undefined,

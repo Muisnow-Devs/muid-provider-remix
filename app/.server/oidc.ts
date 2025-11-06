@@ -13,7 +13,7 @@ import prisma from "./prisma";
 import { OAuthInteractionInvalidError } from "@/errors/common";
 import { auth } from "./auth";
 import { getEpochTime } from "@/lib/utils";
-import { vailidateScope } from "./cache/scopes";
+import { validateScope } from "./cache/scopes";
 
 export const runtime = "nodejs";
 export const OIDC_CLAIMS = {
@@ -94,7 +94,7 @@ const configuration: Configuration = {
                             .split(/\s+/)
                             .filter(Boolean);
 
-                const vscopes = await vailidateScope(requested);
+                const vscopes = await validateScope(requested);
 
                 if (vscopes.invalidScopes?.length) {
                     throw new OAuthInteractionInvalidError(

@@ -1,7 +1,7 @@
 import { checkSession } from "@/.server/auth";
 import { findClient } from "@/.server/cache/clients";
 import provider, { loadGrantByUserIdClientId } from "@/.server/oidc";
-import { vailidateScope } from "@/.server/cache/scopes";
+import { validateScope } from "@/.server/cache/scopes";
 import { commitCSRFToken, validateCSRFToken } from "@/.server/security";
 import { ApplicationIcon, ApplicationScopes } from "@/components/application";
 import { authClient } from "@/components/auth-client";
@@ -90,7 +90,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         (interaction.params.scope as string) ?? "openid profile email"
     ).split(" ");
 
-    const scopeData = await vailidateScope(scopes);
+    const scopeData = await validateScope(scopes);
     if (scopeData.invalidScopes?.length) {
         throw new Response(
             `Invalid scopes requested: ${scopeData.invalidScopes.join(", ")}`,
