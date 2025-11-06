@@ -18,13 +18,13 @@ export async function serverScopes(): Promise<Scopes> {
     const scopes = await prisma.oidcScope.findMany({
         select: { id: true, name: true, description: true },
     });
-    await client.set("muid:server:scopes", JSON.stringify(scopes), "EX", 3600);
 
     const scopesMap: Scopes = {};
     scopes.forEach((scope) => {
         scopesMap[scope.id] = scope;
     });
 
+    await client.set("muid:server:scopes", JSON.stringify(scopesMap), "EX", 3600);
     return scopesMap;
 }
 
