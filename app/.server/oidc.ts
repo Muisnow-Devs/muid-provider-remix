@@ -13,6 +13,7 @@ import prisma from "./prisma";
 import { OAuthInteractionInvalidError } from "@/errors/common";
 import { auth } from "./auth";
 import { getEpochTime } from "@/lib/utils";
+import { vailidateScope } from "./scopes";
 
 export const runtime = "nodejs";
 export const OIDC_CLAIMS = {
@@ -83,33 +84,26 @@ const configuration: Configuration = {
             async getResourceServerInfo(ctx, indicator, client) {
                 if (!indicator)
                     throw new Error("No resource indicator provided");
-                const scopes = await prisma.oidcScope.findMany({
-                    select: { id: true },
-                });
 
-                if (ctx.oidc.requestParamScopes) {
-                    const requested = Array.isArray(ctx.oidc.requestParamScopes)
-                        ? ctx.oidc.requestParamScopes
-                        : ctx.oidc.requestParamScopes instanceof Set
-                          ? Array.from(ctx.oidc.requestParamScopes)
-                          : String(ctx.oidc.requestParamScopes)
-                                .split(/\s+/)
-                                .filter(Boolean);
+                if (!ctx.oidc.requestParamScopes) return { scope: "" };
+                const requested = Array.isArray(ctx.oidc.requestParamScopes)
+                    ? ctx.oidc.requestParamScopes
+                    : ctx.oidc.requestParamScopes instanceof Set
+                      ? Array.from(ctx.oidc.requestParamScopes)
+                      : String(ctx.oidc.requestParamScopes)
+                            .split(/\s+/)
+                            .filter(Boolean);
 
-                    const available = scopes.map((s) => s.id);
-                    const missing = requested.filter(
-                        (r) => !available.includes(r)
+                const vscopes = await vailidateScope(requested);
+
+                if (vscopes.invalidScopes?.length) {
+                    throw new OAuthInteractionInvalidError(
+                        `Requested scopes not available: ${vscopes.invalidScopes.join(", ")}`
                     );
-
-                    if (missing.length) {
-                        throw new OAuthInteractionInvalidError(
-                            `Requested scopes not available: ${missing.join(", ")}`
-                        );
-                    }
                 }
 
                 return {
-                    scope: scopes.map((s) => s.id).join(" "),
+                    scope: vscopes.validScopes.map((s) => s.id).join(" "),
                     accessTokenFormat: "opaque",
                 };
             },
