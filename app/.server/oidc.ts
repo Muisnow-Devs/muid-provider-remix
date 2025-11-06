@@ -112,7 +112,7 @@ const configuration: Configuration = {
 
     expiresWithSession: () => false,
     renderError: async (ctx, out, error) => {
-        console.error("OIDC Provider error:", error);
+        logger.error("OIDC Provider error:", error);
         ctx.redirect(
             `/authorize/error?type=${encodeURIComponent(
                 error.name
@@ -194,15 +194,17 @@ async function loadExistingGrant(ctx: KoaContextWithOIDC) {
 const provider = new Provider(issuer, configuration);
 provider.proxy = true;
 provider.on("server_error", (error) => {
-    logger.error("OIDC Provider server error:", { error });
+    logger.error("OIDC Provider server error:", { error: error.error_detail });
 });
 
 provider.on("authorization.error", (ctx, error) => {
-    logger.error("OIDC Provider authorization error:", { error });
+    logger.error("OIDC Provider authorization error:", {
+        error: error.error_detail,
+    });
 });
 
 provider.on("grant.error", (ctx, error) => {
-    logger.error("OIDC Provider grant error:", { error });
+    logger.error("OIDC Provider grant error:", { error: error.error_detail });
 });
 
 async function getUserInfoByScopes(id: string) {
