@@ -23,7 +23,7 @@ async function entry() {
                 loadPath: "/api/locales/{{lng}}/{{ns}}",
             },
         });
-    
+
     startTransition(() => {
         hydrateRoot(
             document,
@@ -36,6 +36,8 @@ async function entry() {
     });
 }
 
-entry().catch((error) => {
+try {
+    await entry();
+} catch (error) {
     console.error("Failed to hydrate app:", error);
-});
+}

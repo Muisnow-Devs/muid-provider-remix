@@ -16,7 +16,7 @@ const languageMap: Record<string, string> = {
 
 export default function LanguageSelector() {
     const { i18n } = useTranslation();
-    const [query, setQuery] = useSearchParams();
+    const [, setQuery] = useSearchParams();
 
     const changeLanguage = (lng: string) => {
         console.log("Changing language to:", lng);

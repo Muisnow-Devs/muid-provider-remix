@@ -1,10 +1,9 @@
-import "react-router";
+import { RouterContextProvider } from "react-router";
 import "@/.server/queue/worker";
 import { createRequestHandler } from "@react-router/express";
-import express, { Router } from "express";
+import express from "express";
 import oidc from "@/.server/oidc";
 import { userinfoRoute } from "./userinfo";
-import { RouterContextProvider } from "react-router";
 
 declare module "react-router" {
     interface AppLoadContext {}

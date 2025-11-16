@@ -169,7 +169,9 @@ export function meta({ loaderData, error }: Route.MetaArgs) {
             title:
                 (error
                     ? isRouteErrorResponse(error) && error.data.title
-                    : loaderData && loaderData.title) + " - MuID",
+                    : loaderData
+                      ? loaderData.title
+                      : "Unknown error") + " - MuID",
         },
     ];
 }

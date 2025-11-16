@@ -7,7 +7,7 @@ import { isbot } from "isbot";
 import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
 import { I18nextProvider } from "react-i18next";
-import { getInstance, i18nextMiddleware } from "./.server/i18n";
+import { getInstance } from "./.server/i18n";
 import { i18n } from "i18next";
 
 export const streamTimeout = 5_000;
@@ -21,7 +21,7 @@ export default function handleRequest(
     // If you have middleware enabled:
     // loadContext: RouterContextProvider
 ) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
         let shellRendered = false;
         let userAgent = request.headers.get("user-agent");
 
