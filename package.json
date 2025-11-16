@@ -3,9 +3,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "react-router build",
+        "build": "react-router build && cp -r app/locales build/locales",
         "dev": "cross-env NODE_ENV=development node server.js",
-        "start": "PORT=6638 node server.js",
+        "start": "PORT=6638 NODE_ENV=production node server.js",
         "typecheck": "react-router typegen && tsc -b",
         "db:dev": "prisma dev --name muid-provider-remix",
         "db:dev:migrate": "prisma migrate dev --name muid-provider-remix",
