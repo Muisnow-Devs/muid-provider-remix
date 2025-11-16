@@ -1,0 +1,13 @@
+{
+    "title": {
+        "default": "授權 {{app_name}}",
+        "error": "授權流程錯誤"
+    },
+    "head_title": "授權應用程式",
+    "head_description": "應用程式 <Application /> 想要使用以下權限：",
+    "granted": "您已授予以下權限：",
+    "button": {
+        "authorize": "授權",
+        "reject": "拒絕"
+    }
+}

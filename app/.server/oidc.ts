@@ -65,11 +65,10 @@ const configuration: Configuration = {
         introspection: {
             enabled: true,
             allowedPolicy: (ctx, client, token) => {
-                if (client.clientId === token.clientId) {
-                    return true;
-                }
-
-                if (client.clientId.endsWith(".service.sanzi.io")) {
+                if (
+                    client.clientId === token.clientId ||
+                    client.clientId.endsWith(".service.sanzi.io")
+                ) {
                     return true;
                 }
 
@@ -156,7 +155,11 @@ const configuration: Configuration = {
                 })
                 .then((s) => s?.user.id);
 
-            if (session) {
+            if (
+                session &&
+                (!ctx.oidc.session?.accountId ||
+                    ctx.oidc.session.accountId !== session)
+            ) {
                 interaction.result = {
                     login: { accountId: session, remember: false },
                 };

@@ -22,30 +22,43 @@ import {
     data,
     isRouteErrorResponse,
     LoaderFunctionArgs,
-    MetaFunction,
     redirectDocument,
     useFetcher,
     useLoaderData,
     useRouteError,
 } from "react-router";
+import { getInstance } from "@/.server/i18n";
+import { Trans, useTranslation } from "react-i18next";
+import { Route } from "./+types/authorize.$id";
+import LanguageSelector from "@/components/languageSelector";
 
-export async function loader({ params, request }: LoaderFunctionArgs) {
+export async function loader({ params, request, context }: LoaderFunctionArgs) {
+    const { t } = getInstance(context);
     const { id } = params;
     if (!id) {
-        throw new Response("Missing interaction id", { status: 400 });
+        throw new Response(t("errors:interaction.missing"), { status: 400 });
     }
 
     if (id === "error") {
         const url = new URL(request.url);
         const type = url.searchParams.get("type") || "unknown_error";
         const detail = url.searchParams.get("detail") || "No details provided";
-        throw new Response(detail, { status: 400 });
+        throw data(
+            {
+                title: t("authorize:title.error"),
+                detail,
+            },
+            { status: 400 }
+        );
     }
 
     const interaction = await provider.Interaction.find(id);
     if (!interaction) {
-        throw new Response(
-            "Interaction not found, the session might be expired. Please start a new session.",
+        throw data(
+            {
+                title: t("authorize:title.error"),
+                detail: t("errors:interaction.notfound"),
+            },
             { status: 404 }
         );
     }
@@ -78,12 +91,24 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
     const clientId = interaction.params.client_id as string | undefined;
     if (!clientId) {
-        throw new Response("Interaction client_id not found", { status: 400 });
+        throw data(
+            {
+                title: t("authorize:title.error"),
+                detail: t("errors:client_id.missing"),
+            },
+            { status: 400 }
+        );
     }
 
     const client = await findClient(clientId);
     if (!client) {
-        throw new Response("Client not found", { status: 404 });
+        throw data(
+            {
+                title: t("authorize:title.error"),
+                detail: t("errors:client_id.notfound", { client_id: clientId }),
+            },
+            { status: 404 }
+        );
     }
 
     const scopes = (
@@ -92,8 +117,13 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
     const scopeData = await validateScope(scopes);
     if (scopeData.invalidScopes?.length) {
-        throw new Response(
-            `Invalid scopes requested: ${scopeData.invalidScopes.join(", ")}`,
+        throw data(
+            {
+                title: t("authorize:title.error"),
+                detail: t("errors:scopes.invalid", {
+                    scopes: scopeData.invalidScopes.join(", "),
+                }),
+            },
             { status: 400 }
         );
     }
@@ -117,6 +147,9 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     const csrf = await commitCSRFToken(request.headers);
     return data(
         {
+            title: t("authorize:title.default", {
+                app_name: client.name || client.clientId,
+            }),
             client: {
                 id: client.clientId,
                 name: client.name || client.clientId!,
@@ -130,17 +163,23 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     );
 }
 
-export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
+export function meta({ loaderData, error }: Route.MetaArgs) {
     return [
         {
-            title: loaderData
-                ? `Authorize ${loaderData.client.name} - MuID`
-                : "Authorize Error - MuID",
+            title:
+                (error
+                    ? isRouteErrorResponse(error) && error.data.title
+                    : loaderData && loaderData.title) + " - MuID",
         },
     ];
-};
+}
 
-export async function action({ params: pm, request }: LoaderFunctionArgs) {
+export async function action({
+    params: pm,
+    request,
+    context,
+}: LoaderFunctionArgs) {
+    const { t } = getInstance(context);
     const formData = await request.formData();
     const authorize = formData.get("authorize") === "true";
     await validateCSRFToken(
@@ -150,12 +189,12 @@ export async function action({ params: pm, request }: LoaderFunctionArgs) {
 
     const { id } = pm;
     if (!id) {
-        throw new Response("Missing id", { status: 400 });
+        throw new Response(t("errors:interaction.missing"), { status: 400 });
     }
 
     const interaction = await provider.Interaction.find(id);
     if (!interaction) {
-        throw new Response("Interaction not found", { status: 404 });
+        throw new Response(t("errors:interaction.notfound"), { status: 404 });
     }
 
     if (!authorize) {
@@ -168,7 +207,7 @@ export async function action({ params: pm, request }: LoaderFunctionArgs) {
     }
 
     const {
-        prompt: { name, details: promptDetails },
+        prompt: { details: promptDetails },
     } = interaction;
 
     const existingGrant = await loadGrantByUserIdClientId(
@@ -206,6 +245,7 @@ export default function AuthorizePage() {
     const data = useLoaderData<typeof loader>();
     const user = authClient.useSession();
     const fetcher = useFetcher<typeof action>();
+    const { t } = useTranslation("authorize");
 
     async function submit(authorize: boolean) {
         const formData = new FormData();
@@ -222,7 +262,7 @@ export default function AuthorizePage() {
     );
 
     return (
-        <div className="min-h-dvh w-full flex items-center justify-center p-4">
+        <div className="min-h-dvh w-full flex items-center justify-center p-4 flex-col gap-2">
             <Card className="w-full max-w-lg">
                 <CardHeader className="text-center pb-4">
                     <div className="flex items-center mb-2 gap-4 justify-center">
@@ -235,12 +275,20 @@ export default function AuthorizePage() {
                         <UserAvatar user={user.data?.user} size="xl" />
                     </div>
                     <CardTitle className="text-2xl">
-                        Authorize application
+                        {t("head_title")}
                     </CardTitle>
                     <CardDescription>
-                        Application
-                        <span className="px-1">{data.client.name}</span>
-                        is requesting the following permissions:
+                        <Trans
+                            ns="authorize"
+                            i18nKey="head_description"
+                            components={{
+                                Application: (
+                                    <span className="px-2 py-1 bg-white rounded text-black font-medium">
+                                        {data.client.name}
+                                    </span>
+                                ),
+                            }}
+                        />
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -249,7 +297,7 @@ export default function AuthorizePage() {
                     {granted.length > 0 && (
                         <>
                             <h3 className="font-semibold mb-2 italic text-zinc-500">
-                                You have already granted:
+                                {t("granted")}
                             </h3>
                             <ApplicationScopes scopes={granted} />
                         </>
@@ -271,47 +319,53 @@ export default function AuthorizePage() {
                                 className="w-full cursor-pointer"
                                 onClick={() => submit(true)}
                             >
-                                Authorize
+                                {t("button.authorize")}
                             </Button>
                             <Button
                                 variant="outline"
                                 className="w-full cursor-pointer"
                                 onClick={() => submit(false)}
                             >
-                                Reject
+                                {t("button.reject")}
                             </Button>
                         </>
                     )}
                 </CardFooter>
             </Card>
+
+            <LanguageSelector />
         </div>
     );
 }
 
 export function ErrorBoundary() {
     const error = useRouteError();
+    const { t } = useTranslation("errors");
+    console.error(error);
 
     return (
-        <div className="min-h-dvh w-full flex items-center justify-center p-4">
+        <div className="min-h-dvh w-full flex items-center justify-center p-4 flex-col gap-2">
             <Card className="w-full max-w-lg">
                 <CardHeader>
-                    <CardTitle>Authorize failed</CardTitle>
+                    <CardTitle>{t("authorize.title")}</CardTitle>
                     <CardDescription>
-                        Unable to authorize the OAuth client.
+                        {t("authorize.head_description")}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p>
-                        The OAuth client is missing or invalid. If you believe
-                        this is an error, contact the application owner. Below
-                        is more information about the error.
-                    </p>
+                    <p>{t("authorize.description")}</p>
                     <p className="mt-4 rounded bg-gray-100 dark:bg-gray-800 p-4 overflow-x-auto text-sm wrap-break-word w-full font-mono">
                         {isRouteErrorResponse(error) &&
-                            (error.data || "Unknown error")}
+                            (error.data.detail || "Unknown error")}
+                        {!isRouteErrorResponse(error) &&
+                            (error instanceof Error
+                                ? error.message
+                                : String(error))}
                     </p>
                 </CardContent>
             </Card>
+
+            <LanguageSelector />
         </div>
     );
 }

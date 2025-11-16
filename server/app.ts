@@ -1,9 +1,10 @@
 import "react-router";
 import "@/.server/queue/worker";
 import { createRequestHandler } from "@react-router/express";
-import express from "express";
+import express, { Router } from "express";
 import oidc from "@/.server/oidc";
 import { userinfoRoute } from "./userinfo";
+import { RouterContextProvider } from "react-router";
 
 declare module "react-router" {
     interface AppLoadContext {}
@@ -20,11 +21,13 @@ app.use(function (req, res, next) {
 app.use("/oauth2", userinfoRoute);
 app.use("/oauth2", oidc.callback());
 
+const context = new RouterContextProvider();
 app.use(
     createRequestHandler({
         build: () => import("virtual:react-router/server-build"),
+        // @ts-ignore
         getLoadContext() {
-            return {};
-        },
+            return context;
+        }
     })
 );

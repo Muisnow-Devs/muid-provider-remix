@@ -1,11 +1,14 @@
 import { PassThrough } from "node:stream";
 
-import type { AppLoadContext, EntryContext } from "react-router";
+import type { EntryContext, RouterContextProvider } from "react-router";
 import { createReadableStreamFromReadable } from "@react-router/node";
 import { ServerRouter } from "react-router";
 import { isbot } from "isbot";
 import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
+import { I18nextProvider } from "react-i18next";
+import { getInstance, i18nextMiddleware } from "./.server/i18n";
+import { i18n } from "i18next";
 
 export const streamTimeout = 5_000;
 
@@ -14,11 +17,11 @@ export default function handleRequest(
     responseStatusCode: number,
     responseHeaders: Headers,
     routerContext: EntryContext,
-    loadContext: AppLoadContext
+    loadContext: RouterContextProvider
     // If you have middleware enabled:
     // loadContext: RouterContextProvider
 ) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         let shellRendered = false;
         let userAgent = request.headers.get("user-agent");
 
@@ -28,16 +31,19 @@ export default function handleRequest(
             (userAgent && isbot(userAgent)) || routerContext.isSpaMode
                 ? "onAllReady"
                 : "onShellReady";
-
+        
         // Abort the rendering stream after the `streamTimeout` so it has time to
         // flush down the rejected boundaries
+        let abort: () => void;
         let timeoutId: ReturnType<typeof setTimeout> | undefined = setTimeout(
-            () => abort(),
+            () => typeof abort === "function" && abort(),
             streamTimeout + 1000
         );
 
-        const { pipe, abort } = renderToPipeableStream(
-            <ServerRouter context={routerContext} url={request.url} />,
+        const { pipe, abort: abortFn } = renderToPipeableStream(
+            <I18nextProvider i18n={getInstance(loadContext)} defaultNS="default">
+                <ServerRouter context={routerContext} url={request.url} />
+            </I18nextProvider>,
             {
                 [readyOption]() {
                     shellRendered = true;
@@ -76,5 +82,7 @@ export default function handleRequest(
                 },
             }
         );
+
+        abort = abortFn;
     });
 }

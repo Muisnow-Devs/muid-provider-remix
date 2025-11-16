@@ -1,0 +1,18 @@
+{
+    "interaction": {
+        "missing": "Missing interaction id",
+        "notfound": "Interaction not found, the session might be expired. Please start a new session."
+    },
+    "client_id": {
+        "missing": "Interaction client_id not found",
+        "notfound": "OAuth client application \"{{client_id}}\" not found"
+    },
+    "scopes": {
+        "invalid": "Invalid scopes requested: {{scopes}}"
+    },
+    "authorize": {
+        "title": "Authorize failed",
+        "head_description": "Unable to authorize the OAuth client.",
+        "description": "The OAuth client is missing or invalid. If you believe this is an error, contact the application owner. Below is more information about the error."
+    }
+}

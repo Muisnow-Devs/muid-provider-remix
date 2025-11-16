@@ -13,6 +13,7 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { useTranslation } from "react-i18next";
 
 const NAV = [
     { name: "Account Settings", href: "/account/settings", icon: User2 },
@@ -22,6 +23,7 @@ const NAV = [
 
 export default function AccountLayout() {
     const { pathname } = useLocation();
+    const { t } = useTranslation();
     const path = pathname.split("/").at(-1);
 
     return (
@@ -52,7 +54,7 @@ export default function AccountLayout() {
                         to="https://muisnowdevs.one/privacy"
                         className="text-sm text-center text-gray-500 mt-6 hover:text-zinc-50 px-2 py-1 rounded-md transition-colors"
                     >
-                        Privacy Policy
+                        {t("privacy_policy")}
                     </Link>
                     <UserButton />
                 </SidebarFooter>

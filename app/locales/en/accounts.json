@@ -1,0 +1,25 @@
+{
+    "auth": {
+        "app": "Application",
+        "account": "Account",
+        "accounts_description": "Switch between your currently signed in accounts.",
+        "accounts_instructions": "Sign in to an additional account.",
+        "add_account": "Add account",
+        "add_passkey": "Add Passkey",
+        "passkey": "Passkey",
+        "already_have_an_account": "Already have an account?",
+        "avatar": "Avatar",
+        "avatar_description": "Click on the avatar to upload a custom one from your device.",
+        "avatar_instructions": "An avatar is optional but strongly recommended to help identify your account.",
+        "backup_code_required": "Backup code is required",
+        "backup_codes": "Backup codes",
+        "backup_codes_description": "Save these backup codes in a secure place. You can use them to access your account if you lose your two-factor authentication method.",
+        "backup_code_placeholder": "Backup code",
+        "cancel": "Cancel",
+        "change_password": "Change password",
+        "change_password_description": "Enter your current password and a new password.",
+        "change_password_instructions": "Please use 8 characters at minimum.",
+        "email_otp": "Email One-Time Password",
+        "sign_in_with": "Sign in with"
+    }
+}

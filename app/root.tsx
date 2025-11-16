@@ -1,4 +1,5 @@
 import {
+    data,
     isRouteErrorResponse,
     Links,
     Meta,
@@ -6,11 +7,14 @@ import {
     Scripts,
     ScrollRestoration,
 } from "react-router";
-
 import type { Route } from "./+types/root";
 import "./app.css";
 import { Providers } from "./provider";
+import { getLocale, i18nCookies, i18nextMiddleware } from "./.server/i18n";
+import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
 
+export const middleware: Route.MiddlewareFunction[] = [i18nextMiddleware];
 export const links: Route.LinksFunction = () => [
     { rel: "preconnect", href: "https://objects.sanziusercontent.com" },
     { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -25,9 +29,19 @@ export const links: Route.LinksFunction = () => [
     },
 ];
 
+export async function loader({ context }: Route.LoaderArgs) {
+    const locale = getLocale(context);
+    return data(
+        { locale },
+        { headers: { "Set-Cookie": await i18nCookies.serialize(locale) } }
+    );
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
+    const { i18n } = useTranslation();
+
     return (
-        <html lang="en">
+        <html lang={i18n.language} dir={i18n.dir(i18n.language)}>
             <head>
                 <meta charSet="utf-8" />
                 <meta
@@ -46,7 +60,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
     );
 }
 
-export default function App() {
+export default function App({ loaderData: { locale } }: Route.ComponentProps) {
+    const { i18n } = useTranslation();
+    useEffect(() => {
+        if (i18n.language === locale) return;
+        i18n.changeLanguage(locale);
+    }, [i18n, locale]);
+
     return <Outlet />;
 }
 

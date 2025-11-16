@@ -1,0 +1,18 @@
+{
+    "interaction": {
+        "missing": "找不到授權階段 ID",
+        "notfound": "找不到此授權階段，可能已經過期了。請重新開始授權流程。"
+    },
+    "client_id": {
+        "missing": "找不到授權階段的 client_id",
+        "notfound": "找不到 OAuth 應用程式「{{client_id}}」"
+    },
+    "scopes": {
+        "invalid": "請求了無效的權限範圍：{{scopes}}"
+    },
+    "authorize": {
+        "title": "授權失敗",
+        "head_description": "無法授權此 OAuth 應用程式。",
+        "description": "OAuth 應用程式遺失或無效。如果您認為這是錯誤，請聯絡應用程式擁有者。以下是關於此錯誤的更多資訊。"
+    }
+}
