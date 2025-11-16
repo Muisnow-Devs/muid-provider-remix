@@ -1,8 +1,8 @@
 import { AuthUIProvider } from "@daveyplate/better-auth-ui";
-import type { ReactNode } from "react";
+import type { PropsWithChildren } from "react";
 import { authClient } from "./components/auth-client";
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children }: Readonly<PropsWithChildren>) {
     return (
         <AuthUIProvider
             authClient={authClient}

@@ -12,7 +12,7 @@ import "./app.css";
 import { Providers } from "./provider";
 import { getLocale, i18nCookies, i18nextMiddleware } from "./.server/i18n";
 import { useTranslation } from "react-i18next";
-import { useEffect } from "react";
+import { PropsWithChildren, useEffect } from "react";
 
 export const middleware: Route.MiddlewareFunction[] = [i18nextMiddleware];
 export const links: Route.LinksFunction = () => [
@@ -37,7 +37,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     );
 }
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export function Layout({ children }: Readonly<PropsWithChildren>) {
     const { i18n } = useTranslation();
 
     return (
@@ -87,9 +87,9 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     }
 
     return (
-        <main className="pt-16 p-4 container mx-auto">
-            <h1>{message}</h1>
-            <p>{details}</p>
+        <main className="pt-16 p-4 container mx-auto min-h-screen flex flex-col gap-4">
+            <h1 className="text-2xl font-black">{message}</h1>
+            <p className="text-xl">{details}</p>
             {stack && (
                 <pre className="w-full p-4 overflow-x-auto">
                     <code>{stack}</code>

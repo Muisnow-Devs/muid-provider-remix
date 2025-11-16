@@ -82,8 +82,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const scopesList = new Set(
         clientData
             .filter((e) => e.scopes !== null)
-            .map((c) => c.scopes!.split(" "))
-            .flat()
+            .flatMap((c) => c.scopes!.split(" "))
     );
 
     const scopesData = (
@@ -120,7 +119,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const grant = await provider.Grant.find(grantId);
 
     if (!grant || grant.accountId !== session.user.id) {
-        return null;
+       throw new Response("Grant not found", { status: 404 });
     }
 
     const clientId = grant?.clientId;
@@ -134,7 +133,7 @@ export async function action({ request }: ActionFunctionArgs) {
         },
     });
 
-    return null;
+    return new Response(null, { status: 204 });
 }
 
 export default function AccountConnectRoute() {
@@ -163,9 +162,9 @@ export default function AccountConnectRoute() {
                 </div>
             )}
 
-            {data.connectedApps.map((app, index) => (
+            {data.connectedApps.map((app) => (
                 <AuthorizedApplicationCard
-                    key={index}
+                    key={app.id}
                     id={app.clientId}
                     detail={app.oauthapplication}
                     createdAt={app.createdAt}
@@ -191,7 +190,7 @@ function AuthorizedApplicationCard({
     createdAt,
     scopes,
     handleRevoke,
-}: AuthorizedApplicationCardProps) {
+}: Readonly<AuthorizedApplicationCardProps>) {
     return (
         <AlertDialog>
             <AlertDialogContent>

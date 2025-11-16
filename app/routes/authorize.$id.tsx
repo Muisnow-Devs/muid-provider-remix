@@ -41,7 +41,6 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
 
     if (id === "error") {
         const url = new URL(request.url);
-        const type = url.searchParams.get("type") || "unknown_error";
         const detail = url.searchParams.get("detail") || "No details provided";
         throw data(
             {
@@ -152,7 +151,7 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
             }),
             client: {
                 id: client.clientId,
-                name: client.name || client.clientId!,
+                name: client.name || client.clientId,
                 logo: client.icon || undefined,
                 scopes: scopeData.validScopes,
                 missing: missingScopes,
@@ -164,16 +163,15 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
 }
 
 export function meta({ loaderData, error }: Route.MetaArgs) {
-    return [
-        {
-            title:
-                (error
-                    ? isRouteErrorResponse(error) && error.data.title
-                    : loaderData
-                      ? loaderData.title
-                      : "Unknown error") + " - MuID",
-        },
-    ];
+    let title = "Unknown error";
+
+    if (error && isRouteErrorResponse(error)) {
+        title = error.data.title;
+    } else if (loaderData) {
+        title = loaderData.title;
+    }
+
+    return [{ title: `${title} - MuID` }];
 }
 
 export async function action({
@@ -304,10 +302,6 @@ export default function AuthorizePage() {
                             <ApplicationScopes scopes={granted} />
                         </>
                     )}
-
-                    {/* {error && (
-                        <p className="text-sm text-destructive mt-4">{error}</p>
-                    )} */}
                 </CardContent>
                 <CardFooter className="gap-2 flex flex-col">
                     {fetcher.state === "loading" && (

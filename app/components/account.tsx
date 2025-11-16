@@ -12,7 +12,7 @@ export function AccountNavButton({
     isSelected,
     children,
     to,
-}: AccountNavButtonProps) {
+}: Readonly<AccountNavButtonProps>) {
     return (
         <Link to={to}>
             <Button

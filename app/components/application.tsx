@@ -8,11 +8,12 @@ interface ApplicationIconProps {
     name: string;
 }
 
-export function ApplicationIcon({ clientId, icon, name }: ApplicationIconProps) {
+export function ApplicationIcon({ clientId, icon, name }: Readonly<ApplicationIconProps>) {
     return (
         <div className="flex flex-col items-center gap-4 relative">
             {icon && (
                 <img
+                    alt={name}
                     src={icon}
                     width={48}
                     height={48}
@@ -46,7 +47,7 @@ interface ApplicationScopesProps {
         description: string | null;
     }[];
 }
-export function ApplicationScopes({ scopes }: ApplicationScopesProps) {
+export function ApplicationScopes({ scopes }: Readonly<ApplicationScopesProps>) {
     return (
         <Accordion
             type="multiple"
