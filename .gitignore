@@ -8,3 +8,4 @@
 
 /app/.server/generated/
 stats.html
+agent_runs/

@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { commitSession, getSession } from "./sessions";
-import { getJwks } from "./jwks";
+import { getPrivateJwkForSigning } from "./jwks";
 import { importJWK } from "jose";
 
 const ENCRYPTION_ALGORITHM = "aes-256-gcm";
@@ -59,8 +59,8 @@ export async function validateCSRFToken(request: Request, csrfToken?: string) {
 }
 
 export async function calculateWebhookSignature(data: string) {
-    const jwks = await getJwks();
-    const secret = await importJWK(jwks.keys[0], "RS512");
+    const privateJwk = await getPrivateJwkForSigning();
+    const secret = await importJWK(privateJwk, "RS512");
     if (!(secret instanceof CryptoKey)) {
         throw new Error("Failed to import JWK as CryptoKey");
     }
@@ -76,6 +76,6 @@ export async function calculateWebhookSignature(data: string) {
     );
     return {
         signature: Buffer.from(signatureBuffer).toString("base64url"),
-        kid: jwks.keys[0].kid!,
+        kid: privateJwk.kid!,
     };
 }

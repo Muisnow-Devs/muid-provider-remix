@@ -67,7 +67,7 @@ export const auth = betterAuth({
             update: {
                 after: async (user, changes) => {
                     await enqueue({
-                        type: "uesr.updated",
+                        type: "user.updated",
                         payload: {
                             userId: user.id,
                             changes: changes?.body || {},

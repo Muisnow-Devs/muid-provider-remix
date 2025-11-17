@@ -9,7 +9,7 @@ import { ClientDetails, findClient } from "@/.server/cache/clients";
 export class InsertTasks extends QueueTask {
     override async process(
         job: Job<
-            AppQueueEvent<"user.deleted" | "user.revoked" | "uesr.updated">
+            AppQueueEvent<"user.deleted" | "user.revoked" | "user.updated">
         >
     ): Promise<void> {
         super.process(job);
@@ -22,8 +22,8 @@ export class InsertTasks extends QueueTask {
             case "user.revoked":
                 await this.doRevoke(payload as AppEventMap["user.revoked"]);
                 break;
-            case "uesr.updated":
-                await this.doUpdate(payload as AppEventMap["uesr.updated"]);
+            case "user.updated":
+                await this.doUpdate(payload as AppEventMap["user.updated"]);
                 break;
         }
     }
@@ -93,7 +93,7 @@ export class InsertTasks extends QueueTask {
         });
     }
 
-    private async doUpdate(payload: AppEventMap["uesr.updated"]) {
+    private async doUpdate(payload: AppEventMap["user.updated"]) {
         const clients = await this.fetchClients(payload.userId);
         for (const client of clients) {
             const allowedClaims = client.scopes.flatMap(

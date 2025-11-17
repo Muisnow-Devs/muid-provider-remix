@@ -7,7 +7,7 @@ import RedisAdapter from "./adapters/RedisAdaper";
 import DatabaseAdapter from "./adapters/DatabaseAdapter";
 import ClientAdapter from "./adapters/ClientAdapter";
 import GrantAdapter from "./adapters/GrantAdapter";
-import { getJwks } from "./jwks";
+import { getPrivateJwkForSigning } from "./jwks";
 import { logger } from "./logger";
 import prisma from "./prisma";
 import { OAuthInteractionInvalidError } from "@/errors/common";
@@ -34,7 +34,6 @@ const PERSISTENT_MODELS = [
     "PushedAuthorizationRequest",
 ];
 
-const jwks = await getJwks();
 const configuration: Configuration = {
     adapter: (name) => {
         // Use ClientAdapter for Client model
@@ -169,7 +168,9 @@ const configuration: Configuration = {
             return `/authorize/${interaction.uid}`;
         },
     },
-    jwks,
+    jwks: {
+        keys: [await getPrivateJwkForSigning()],
+    },
 };
 
 async function loadGrantByUserIdClientId(userId?: string, clientId?: string) {

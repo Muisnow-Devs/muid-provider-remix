@@ -4,7 +4,7 @@ export enum QueueNames {
 }
 
 export interface AppEventMap {
-    "uesr.updated": {
+    "user.updated": {
         userId: string;
         changes: Record<string, any>;
     };

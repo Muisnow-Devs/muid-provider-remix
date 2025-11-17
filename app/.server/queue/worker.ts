@@ -42,7 +42,7 @@ function generateWorkers(
 const workers = [
     generateWorkers(QueueNames.DEFAULT, {
         "email.sent": new SendMailTask(),
-        "uesr.updated": new InsertTasks(),
+        "user.updated": new InsertTasks(),
         "user.deleted": new InsertTasks(),
         "user.revoked": new InsertTasks(),
         unknown: new DefaultTask(),

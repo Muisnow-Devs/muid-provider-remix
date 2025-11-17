@@ -3,8 +3,12 @@ import { logger } from "./logger";
 import { generateKeyPair, exportJWK, JWK } from "jose";
 import { decryption, encryption } from "./security";
 
-const encKey =
-    process.env.JWKS_ENC_KEY || "default_encryption_key_please_change";
+// Validate JWKS_ENC_KEY is set
+if (!process.env.JWKS_ENC_KEY) {
+    throw new Error("JWKS_ENC_KEY must be set and cannot be a default value");
+}
+
+const encKey = process.env.JWKS_ENC_KEY;
 
 interface KeyStore {
     keys: JWK[];
@@ -99,18 +103,99 @@ export async function loadJwks(): Promise<KeyStore> {
 }
 
 /**
- * Get JWKS in the format expected by oidc-provider
+ * Sanitize JWK to remove private parameters
  */
-let jwksCache: { keys: JWK[] } | null = null;
+function sanitizeJwk(jwk: JWK): JWK {
+    const { d, p, q, dp, dq, qi, ...publicJwk } = jwk;
+    return publicJwk;
+}
 
-export async function getJwks(): Promise<{ keys: JWK[] }> {
-    if (jwksCache) {
-        return jwksCache;
+/**
+ * Get public JWKS for discovery endpoints (only public key parameters)
+ */
+let publicJwksCache: { keys: JWK[] } | null = null;
+
+export async function getPublicJwks(): Promise<{ keys: JWK[] }> {
+    if (publicJwksCache) {
+        return publicJwksCache;
     }
 
-    const keystore = await loadJwks();
-    jwksCache = keystore;
-    return keystore;
+    try {
+        const existingKeys = await prisma.jwks.findMany({
+            orderBy: {
+                createdAt: "desc",
+            },
+            take: 1,
+        });
+
+        if (existingKeys.length > 0) {
+            const key = existingKeys[0];
+            const publicJwk = JSON.parse(key.publicKey) as JWK;
+
+            publicJwksCache = {
+                keys: [sanitizeJwk(publicJwk)],
+            };
+            return publicJwksCache;
+        }
+
+        // If no keys exist, generate new ones
+        logger.info("No existing keys found, generating new JWKS...");
+        const { publicJwk, privateJwk, kid } = await generateRSAKeyPair();
+
+        await prisma.jwks.create({
+            data: {
+                id: kid,
+                publicKey: JSON.stringify(publicJwk),
+                privateKey: encryption(
+                    Buffer.from(JSON.stringify(privateJwk)),
+                    encKey
+                ),
+                createdAt: new Date(),
+            },
+        });
+
+        logger.info("Generated and saved new JWKS", { kid });
+
+        publicJwksCache = {
+            keys: [sanitizeJwk(publicJwk)],
+        };
+        return publicJwksCache;
+    } catch (error) {
+        logger.error("Failed to get public JWKS", { error });
+        throw error;
+    }
+}
+
+/**
+ * Get private JWK for internal signing operations only
+ */
+export async function getPrivateJwkForSigning(): Promise<JWK> {
+    try {
+        const keyRow = await prisma.jwks.findFirst({
+            orderBy: { createdAt: "desc" },
+        });
+
+        if (!keyRow) {
+            throw new Error("No signing key available");
+        }
+
+        try {
+            const privateJwk = JSON.parse(
+                decryption(keyRow.privateKey, encKey).toString("utf-8")
+            ) as JWK;
+            return privateJwk;
+        } catch (error) {
+            logger.error(
+                "Failed to parse private JWK from database, regenerating...",
+                { error }
+            );
+            await rotateJwks();
+            return getPrivateJwkForSigning();
+        }
+    } catch (error) {
+        logger.error("Failed to get private JWK for signing", { error });
+        throw error;
+    }
 }
 
 /**
@@ -125,13 +210,16 @@ export async function rotateJwks(): Promise<void> {
         data: {
             id: kid,
             publicKey: JSON.stringify(publicJwk),
-            privateKey: JSON.stringify(privateJwk),
+            privateKey: encryption(
+                Buffer.from(JSON.stringify(privateJwk)),
+                encKey
+            ),
             createdAt: new Date(),
         },
     });
 
     logger.info("JWKS rotated successfully", { kid });
-    jwksCache = null;
+    publicJwksCache = null;
 }
 
 /**
