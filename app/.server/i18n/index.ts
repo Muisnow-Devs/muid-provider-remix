@@ -3,7 +3,6 @@ import { initReactI18next } from "react-i18next";
 import { createCookie } from "react-router";
 import { createI18nextMiddleware } from "remix-i18next/middleware";
 import "i18next";
-import Backend from "i18next-fs-backend";
 
 export const i18nCookies = createCookie("_i18n", {
     path: "/",
@@ -18,10 +17,7 @@ export type TranslationDict = {
 };
 const translationModules = import.meta.glob<TranslationDict>(
     "@/locales/*/*.json",
-    {
-        eager: true,
-        import: "default",
-    }
+    { eager: true, import: "default" }
 );
 
 export const translations = Object.entries(translationModules).reduce<Resource>(
@@ -62,7 +58,7 @@ export const [i18nextMiddleware, getLocale, getInstance] =
             },
             resources: translations,
         },
-        plugins: [initReactI18next, Backend],
+        plugins: [initReactI18next],
     });
 
 declare module "i18next" {
@@ -74,6 +70,6 @@ declare module "i18next" {
             authorize: typeof import("../../locales/en/authorize.json");
             accounts: typeof import("../../locales/en/accounts.json");
             bau: typeof import("../../locales/en/bau.json");
-        }
+        };
     }
 }
