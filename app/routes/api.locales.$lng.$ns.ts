@@ -5,15 +5,15 @@ import { namespaces, translations } from "@/.server/i18n";
 
 export async function loader({ params }: LoaderFunctionArgs) {
     const lng = z.enum(Object.keys(translations)).safeParse(params.lng);
-    if (lng.error) return data({ error: lng.error }, { status: 400 });
+    if (lng.error) return data({ error: "This language is not allowed." }, { status: 400 });
 
     const ns = z.enum(namespaces).safeParse(params.ns);
-    if (ns.error) return data({ error: ns.error.message }, { status: 400 });
+    if (ns.error) return data({ error: "This namespace is not allowed." }, { status: 400 });
 
     try {
         const translation = translations[lng.data][ns.data];
         if (!translation) {
-            return data({ error: "Translation not found" }, { status: 404 });
+            return data({ error: "Translation not found, this shouldn't happened." }, { status: 404 });
         }
 
         const headers = new Headers();

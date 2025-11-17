@@ -1,16 +1,9 @@
 import { Resource } from "i18next";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { initReactI18next } from "react-i18next";
 import { createCookie } from "react-router";
 import { createI18nextMiddleware } from "remix-i18next/middleware";
 import "i18next";
 import Backend from "i18next-fs-backend";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-console.log("i18n directory:", resolve(__dirname, "../../locales"));
 
 export const i18nCookies = createCookie("_i18n", {
     path: "/",
@@ -24,7 +17,7 @@ export type TranslationDict = {
     [key: string]: string | TranslationDict;
 };
 const translationModules = import.meta.glob<TranslationDict>(
-    "../../locales/*/*.json",
+    "@/locales/*/*.json",
     {
         eager: true,
         import: "default",
@@ -67,9 +60,7 @@ export const [i18nextMiddleware, getLocale, getInstance] =
             react: {
                 useSuspense: false,
             },
-            backend: {
-                loadPath: resolve(__dirname, "../../locales/{{lng}}/{{ns}}.json"),
-            },
+            resources: translations,
         },
         plugins: [initReactI18next, Backend],
     });
