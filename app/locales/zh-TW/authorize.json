@@ -9,5 +9,6 @@
     "button": {
         "authorize": "授權",
         "reject": "拒絕"
-    }
+    },
+    "official": "官方"
 }

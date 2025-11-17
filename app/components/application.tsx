@@ -1,6 +1,7 @@
 import { BadgeCheckIcon } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { Badge } from "./ui/badge";
+import { useTranslation } from "react-i18next";
 
 interface ApplicationIconProps {
     clientId: string;
@@ -9,6 +10,8 @@ interface ApplicationIconProps {
 }
 
 export function ApplicationIcon({ clientId, icon, name }: Readonly<ApplicationIconProps>) {
+    const { t } = useTranslation("authorize");
+
     return (
         <div className="flex flex-col items-center gap-4 relative">
             {icon && (
@@ -34,7 +37,7 @@ export function ApplicationIcon({ clientId, icon, name }: Readonly<ApplicationIc
                 className="bg-blue-500 text-white dark:bg-blue-600 absolute bottom-0 right-1/2 transform translate-y-1/2 translate-x-1/2"
             >
                 <BadgeCheckIcon />
-                Official
+                {t("official")}
             </Badge>}
         </div>
     );

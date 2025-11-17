@@ -9,5 +9,6 @@
     "button": {
         "authorize": "Authorize",
         "reject": "Reject"
-    }
+    },
+    "official": "Official"
 }
