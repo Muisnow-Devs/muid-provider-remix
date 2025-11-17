@@ -8,13 +8,18 @@ import {
     SelectValue,
 } from "./ui/select";
 import { useSearchParams } from "react-router";
+import { Globe } from "lucide-react";
 
 const languageMap: Record<string, string> = {
     en: "English",
     "zh-TW": "正體中文",
 };
 
-export default function LanguageSelector() {
+interface LanguageSelectorProps {
+    className?: string;
+}
+
+export default function LanguageSelector({ className }: LanguageSelectorProps) {
     const { i18n } = useTranslation();
     const [, setQuery] = useSearchParams();
 
@@ -28,9 +33,10 @@ export default function LanguageSelector() {
     };
 
     return (
-        <div>
+        <div className={className}>
             <Select onValueChange={(e) => changeLanguage(e)}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
+                    <Globe />
                     <SelectValue placeholder={languageMap[i18n.language]} />
                 </SelectTrigger>
                 <SelectContent>

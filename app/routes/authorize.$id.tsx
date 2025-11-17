@@ -5,6 +5,7 @@ import { validateScope } from "@/.server/cache/scopes";
 import { commitCSRFToken, validateCSRFToken } from "@/.server/security";
 import { ApplicationIcon, ApplicationScopes } from "@/components/application";
 import { authClient } from "@/components/auth-client";
+import Logo from "@/components/logo/main.svg?react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -31,6 +32,7 @@ import { getInstance } from "@/.server/i18n";
 import { Trans, useTranslation } from "react-i18next";
 import { Route } from "./+types/authorize.$id";
 import LanguageSelector from "@/components/languageSelector";
+import { PrivacyPolicy } from "@/components/service";
 
 export async function loader({ params, request, context }: LoaderFunctionArgs) {
     const { t } = getInstance(context);
@@ -263,6 +265,8 @@ export default function AuthorizePage() {
 
     return (
         <div className="min-h-dvh w-full flex items-center justify-center p-4 flex-col gap-2">
+            <Logo width={180} className="py-5" />
+
             <Card className="w-full max-w-lg">
                 <CardHeader className="text-center pb-4">
                     <div className="flex items-center mb-2 gap-4 justify-center">
@@ -329,6 +333,7 @@ export default function AuthorizePage() {
                 </CardFooter>
             </Card>
 
+            <PrivacyPolicy />
             <LanguageSelector />
         </div>
     );
@@ -361,6 +366,7 @@ export function ErrorBoundary() {
                 </CardContent>
             </Card>
 
+            <PrivacyPolicy />
             <LanguageSelector />
         </div>
     );

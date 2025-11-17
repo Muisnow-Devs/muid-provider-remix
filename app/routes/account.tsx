@@ -14,10 +14,11 @@ import {
     SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useTranslation } from "react-i18next";
+import LanguageSelector from "@/components/languageSelector";
+import { PrivacyPolicy } from "@/components/service";
 
 export default function AccountLayout() {
     const { pathname } = useLocation();
-    const { t: bT } = useTranslation();
     const { t } = useTranslation("accounts");
 
     const NAV: Record<string, { name: string; icon: LucideIcon }> = {
@@ -59,12 +60,10 @@ export default function AccountLayout() {
                     </SidebarMenu>
                 </SidebarContent>
                 <SidebarFooter>
-                    <Link
-                        to="https://muisnowdevs.one/privacy"
-                        className="text-sm text-center text-gray-500 mt-6 hover:text-zinc-50 px-2 py-1 rounded-md transition-colors"
-                    >
-                        {bT("privacy_policy")}
-                    </Link>
+                    <div className="flex flex-col items-center w-full gap-2">
+                        <PrivacyPolicy />
+                        <LanguageSelector className="w-full" />
+                    </div>
                     <UserButton />
                 </SidebarFooter>
             </Sidebar>
@@ -77,7 +76,6 @@ export default function AccountLayout() {
                 </h1>
                 <Outlet />
             </div>
-            {/* </div> */}
         </SidebarProvider>
     );
 }

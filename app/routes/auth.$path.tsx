@@ -1,7 +1,9 @@
 import { AuthView, authViewPaths } from "@daveyplate/better-auth-ui";
 import Logo from "@/components/logo/main.svg?react";
-import { Link, MetaFunction, useParams } from "react-router";
+import { MetaFunction, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
+import LanguageSelector from "@/components/languageSelector";
+import { PrivacyPolicy } from "@/components/service";
 
 export const meta: MetaFunction = ({ params }) => {
     const { path } = params;
@@ -36,16 +38,12 @@ export default function AuthPage() {
     return (
         <main className="w-full min-h-screen flex flex-col items-center justify-center p-4">
             <div className="container flex flex-col items-center m-auto">
-                <Logo width={180} className="pb-5" />
+                <Logo width={180} className="py-5" />
                 <AuthView path={path} />
 
-                <div className="mt-4">
-                    <Link
-                        to="https://muisnowdevs.one/privacy"
-                        className="text-sm text-center text-gray-500 mt-6"
-                    >
-                        {t("privacy_policy")}
-                    </Link>
+                <div className="flex flex-col items-center justify-center gap-4 mt-6">
+                    <PrivacyPolicy />
+                    <LanguageSelector />
                 </div>
             </div>
         </main>
