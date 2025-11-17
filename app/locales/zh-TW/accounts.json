@@ -1,3 +1,17 @@
 {
-    
+    "sidebar": {
+        "account": "帳戶設定",
+        "security": "安全性",
+        "connected": "已連接的應用程式"
+    },
+    "applications": {
+        "no_applications": "未找到已連接的應用程式。",
+        "revoke": {
+            "button": "撤銷授權",
+            "title": "您確定要這麼做嗎？",
+            "description": "此操作無法復原。撤銷應用程式的存取權限可能會導致應用程式刪除與您的 MuID 帳戶相關聯的任何資料。"
+        },
+        "granted": "已授予的範圍：",
+        "connected_on": "於 {{date}} 授權"
+    }
 }

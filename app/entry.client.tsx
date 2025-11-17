@@ -14,7 +14,7 @@ async function entry() {
         .init({
             fallbackLng: "en",
             defaultNS: "default",
-            ns: ["default", "errors", "authorize", "accounts"],
+            ns: ["default", "errors", "authorize", "accounts", "bau"],
             detection: {
                 order: ["htmlTag", "querystring", "localStorage", "navigator"],
                 caches: ["localStorage"],

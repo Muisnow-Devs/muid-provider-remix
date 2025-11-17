@@ -82,6 +82,7 @@ declare module "i18next" {
             default: typeof import("../../locales/en/default.json");
             authorize: typeof import("../../locales/en/authorize.json");
             accounts: typeof import("../../locales/en/accounts.json");
+            bau: typeof import("../../locales/en/bau.json");
         }
     }
 }

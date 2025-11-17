@@ -1,5 +1,6 @@
 import { checkSession } from "@/.server/auth";
 import { ClientDetails, findClient } from "@/.server/cache/clients";
+import { getLocale } from "@/.server/i18n";
 import provider from "@/.server/oidc";
 import prisma from "@/.server/prisma";
 import { enqueue } from "@/.server/queue/default";
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/card";
 import { CircleQuestionMarkIcon } from "lucide-react";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
     ActionFunctionArgs,
     LoaderFunctionArgs,
@@ -50,7 +52,7 @@ export const meta: MetaFunction = () => {
     return [{ title: "Connected Applications - MuID" }];
 };
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request, context }: LoaderFunctionArgs) {
     const session = await checkSession(request);
 
     const clientData = await prisma.oauthConsent.findMany({
@@ -106,6 +108,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
             ...app,
             oauthapplication: applicationsMap[app.clientId],
             scopes: app.scopes!.split(" "),
+            createdAt: app.createdAt.toLocaleString(getLocale(context)),
         })),
         scopesData,
     };
@@ -119,7 +122,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const grant = await provider.Grant.find(grantId);
 
     if (!grant || grant.accountId !== session.user.id) {
-       throw new Response("Grant not found", { status: 404 });
+        throw new Response("Grant not found", { status: 404 });
     }
 
     const clientId = grant?.clientId;
@@ -180,7 +183,7 @@ interface AuthorizedApplicationCardProps {
     id: string;
     detail: SimpleClientDetails;
     scopes: SimpleScopesDetails[];
-    createdAt: Date;
+    createdAt: string;
     handleRevoke: () => void;
 }
 
@@ -191,28 +194,29 @@ function AuthorizedApplicationCard({
     scopes,
     handleRevoke,
 }: Readonly<AuthorizedApplicationCardProps>) {
+    const { t: bT } = useTranslation();
+    const { t } = useTranslation("accounts");
+
     return (
         <AlertDialog>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
-                        Are you absolutely sure?
+                        {t("applications.revoke.title")}
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                        This action is irreversible. Revoking the application's
-                        access may also cause the application to delete any data
-                        linked to your MuID account.
+                        {t("applications.revoke.description")}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel className="cursor-pointer">
-                        Cancel
+                        {bT("cancel")}
                     </AlertDialogCancel>
                     <AlertDialogAction
                         className="bg-destructive text-white hover:bg-rose-800 cursor-pointer"
                         onClick={() => handleRevoke()}
                     >
-                        Continue
+                        {bT("confirm")}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
@@ -227,10 +231,17 @@ function AuthorizedApplicationCard({
                         />
                         <h2>{detail.name}</h2>
                     </div>
-                    <p>Connected At: {new Date(createdAt).toLocaleString()}</p>
+                    <p>
+                        {t("applications.connected_on", {
+                            date: createdAt,
+                            interpolation: { escapeValue: false },
+                        })}
+                    </p>
                 </CardHeader>
                 <CardContent>
-                    <h3 className="text-xl mb-2">Granted Scopes:</h3>
+                    <h3 className="text-xl mb-2">
+                        {t("applications.granted")}
+                    </h3>
                     <ApplicationScopes scopes={scopes} />
                 </CardContent>
                 <CardFooter className="flex justify-end">
@@ -239,7 +250,7 @@ function AuthorizedApplicationCard({
                             variant="destructive"
                             className="cursor-pointer"
                         >
-                            Revoke Access
+                            {t("applications.revoke.button")}
                         </Button>
                     </AlertDialogTrigger>
                 </CardFooter>
