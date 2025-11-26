@@ -9,3 +9,5 @@
 /app/.server/generated/
 stats.html
 agent_runs/
+
+google-service-account.json

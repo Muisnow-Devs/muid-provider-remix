@@ -22,7 +22,7 @@ export interface PubSubMessage {
     timestamp: number;
     userId: string;
     type: EventType;
-    target?: string;
+    target: string | null;
     payload: string;
 }
 
@@ -49,7 +49,7 @@ export function sendIdentityEvent<T extends EventType>(
     eventType: T,
     userId: string,
     payload: IdentityEventPayloadMap[T],
-    target?: string
+    target: string | null = null
 ) {
     const message: PubSubMessage = {
         eventId: crypto.randomUUID(),
@@ -70,6 +70,6 @@ export function sendIdentityEvent<T extends EventType>(
                 String(value),
             ])
         ),
-        payload
+        message
     );
 }
