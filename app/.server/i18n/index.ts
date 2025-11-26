@@ -52,7 +52,6 @@ export const [i18nextMiddleware, getLocale, getInstance] =
             supportedLngs: Object.keys(translations),
             defaultNS: "default",
             ns: namespaces,
-            debug: process.env.NODE_ENV !== "production",
             react: {
                 useSuspense: false,
             },
