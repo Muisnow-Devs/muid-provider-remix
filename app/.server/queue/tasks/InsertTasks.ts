@@ -1,9 +1,6 @@
 import { Job } from "bullmq";
 import { AppEventMap, AppQueueEvent } from "./ProcessData";
 import QueueTask from "./QueueTask";
-import prisma from "@/.server/prisma";
-import { OIDC_CLAIMS } from "@/.server/oidc";
-import { ClientDetails, findClient } from "@/.server/cache/clients";
 import { EventType, sendIdentityEvent } from "@/.server/pubsub";
 
 export class InsertTasks extends QueueTask {
