@@ -38,7 +38,12 @@ export const auth = betterAuth({
         passkey(),
         lastLoginMethod(),
         admin(),
-        username(),
+        username({
+            displayUsernameValidator: (username) =>
+                /^[a-zA-Z0-9_]+$/.test(username),
+            maxUsernameLength: 30,
+            minUsernameLength: 3,
+        }),
         multiSession(),
         emailOTP({ sendVerificationOTP }),
     ],
@@ -60,7 +65,7 @@ export const auth = betterAuth({
                         clients: clients.map((c) => c.clientId),
                     },
                 });
-            }
+            },
         },
     },
     databaseHooks: {
@@ -74,10 +79,10 @@ export const auth = betterAuth({
                             changes: changes?.body || {},
                         },
                     });
-                }
-            }
-        }
-    }
+                },
+            },
+        },
+    },
 });
 
 async function sendDeleteAccountVerification({
