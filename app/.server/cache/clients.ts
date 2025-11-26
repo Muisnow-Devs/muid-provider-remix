@@ -8,8 +8,9 @@ export interface ClientDetails {
     name: string | null;
     icon: string | null;
     metadata: Record<string, unknown> | null;
-    webhook: string | null;
     disabled: boolean;
+    tosURL: string | null;
+    privacyURL: string | null;
 }
 
 const key = (clientId: string) => `muid:client:${clientId}`;
@@ -37,8 +38,9 @@ export async function findClient(
                 name: true,
                 icon: true,
                 metadata: true,
-                webhook: true,
                 disabled: true,
+                tosURL: true,
+                privacyURL: true,
             },
         })
         .then((res) => {
