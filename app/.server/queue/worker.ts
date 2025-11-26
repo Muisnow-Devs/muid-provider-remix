@@ -6,7 +6,6 @@ import { AppEventMap, AppQueueEvent, QueueNames } from "./tasks/ProcessData";
 import QueueTask from "./tasks/QueueTask";
 import { SendMailTask } from "./tasks/SendMailTask";
 import { InsertTasks } from "./tasks/InsertTasks";
-import { SendWebhookEvent } from "./tasks/SendWebhookEvent";
 import config from "./config";
 
 const CONCURRENCY = Number(process.env.QUEUE_CONCURRENCY) || 5;
@@ -45,10 +44,6 @@ const workers = [
         "user.updated": new InsertTasks(),
         "user.deleted": new InsertTasks(),
         "user.revoked": new InsertTasks(),
-        unknown: new DefaultTask(),
-    }),
-    generateWorkers(QueueNames.CLIENT_EVENTS, {
-        "webhook.sent": new SendWebhookEvent(),
         unknown: new DefaultTask(),
     }),
 ];

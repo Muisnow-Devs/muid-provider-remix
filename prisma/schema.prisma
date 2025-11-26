@@ -10,7 +10,7 @@ datasource db {
 
 generator client {
   provider = "prisma-client"
-  output = "../app/.server/generated/prisma"
+  output   = "../app/.server/generated/prisma"
 }
 
 model User {
@@ -119,7 +119,8 @@ model OauthApplication {
   updatedAt     DateTime       @default(now()) @updatedAt
   oauthconsents OauthConsent[]
 
-  webhook String?
+  tosURL     String?
+  privacyURL String?
 
   @@unique([clientId])
   @@map("oauthApplication")

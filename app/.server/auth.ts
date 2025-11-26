@@ -15,6 +15,7 @@ import emailVerificationTemplate, {
 } from "./templates/emailVerification";
 import { SocialProviders } from "better-auth/social-providers";
 import { redirectToLogin } from "@/utils";
+import { EventType, sendIdentityEvent } from "./pubsub";
 
 const socialProviders: SocialProviders = {
     google: {
