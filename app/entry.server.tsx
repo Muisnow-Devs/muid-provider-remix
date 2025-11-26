@@ -8,7 +8,6 @@ import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
 import { I18nextProvider } from "react-i18next";
 import { getInstance } from "./.server/i18n";
-import { i18n } from "i18next";
 
 export const streamTimeout = 5_000;
 
