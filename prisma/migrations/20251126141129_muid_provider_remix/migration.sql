@@ -5,6 +5,6 @@
 
 */
 -- AlterTable
-ALTER TABLE `oauthapplication` DROP COLUMN `webhook`,
+ALTER TABLE `oauthApplication` DROP COLUMN `webhook`,
     ADD COLUMN `privacyURL` VARCHAR(191) NULL,
     ADD COLUMN `tosURL` VARCHAR(191) NULL;
