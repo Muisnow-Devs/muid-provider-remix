@@ -102,7 +102,13 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
     }
 
     const client = await findClient(clientId);
-    if (!client) {
+    if (
+        !client ||
+        client.disabled ||
+        (clientId.endsWith(".corp.sanzi.io") &&
+            (!session.user.email.endsWith("@sanzi.io") ||
+                !session.user.email.endsWith("@muisnowdevs.one")))
+    ) {
         throw data(
             {
                 title: t("authorize:title.error"),
