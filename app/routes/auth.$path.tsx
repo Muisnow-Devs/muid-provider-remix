@@ -33,7 +33,6 @@ export const meta: MetaFunction = ({ params }) => {
 
 export default function AuthPage() {
     const { path } = useParams();
-    const { t } = useTranslation();
 
     return (
         <main className="w-full min-h-screen flex flex-col items-center justify-center p-4">

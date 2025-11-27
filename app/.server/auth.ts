@@ -1,12 +1,13 @@
 import { betterAuth, User } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { passkey } from "better-auth/plugins/passkey";
+import { passkey } from "@better-auth/passkey";
 import {
     lastLoginMethod,
     admin,
     username,
     multiSession,
     emailOTP,
+    captcha,
 } from "better-auth/plugins";
 import prisma from "./prisma";
 import { enqueue } from "./queue/default";
@@ -15,7 +16,6 @@ import emailVerificationTemplate, {
 } from "./templates/emailVerification";
 import { SocialProviders } from "better-auth/social-providers";
 import { redirectToLogin } from "@/utils";
-import { EventType, sendIdentityEvent } from "./pubsub";
 
 const socialProviders: SocialProviders = {
     google: {
@@ -43,6 +43,14 @@ export const auth = betterAuth({
                 /^[a-zA-Z0-9_]+$/.test(username),
             maxUsernameLength: 30,
             minUsernameLength: 3,
+        }),
+        captcha({
+            provider: "cloudflare-turnstile",
+            secretKey: process.env.TURNSTILE_SECRET_KEY!,
+            endpoints: [
+                "/email-otp/send-verification-otp",
+                // "/sign-in/email-otp",
+            ]
         }),
         multiSession(),
         emailOTP({ sendVerificationOTP }),

@@ -22,6 +22,11 @@ export function Providers({ children }: Readonly<PropsWithChildren>) {
             deleteUser={{
                 verification: true,
             }}
+            captcha={{
+                provider: "cloudflare-turnstile",
+                siteKey: import.meta.env.VITE_TURNSTILE_SITE_KEY,
+                endpoints: ["/email-otp/send-verification-otp"],
+            }}
             changeEmail={false}
             localization={i18n.getResourceBundle(i18n.language, "bau")}
         >

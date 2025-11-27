@@ -1,3 +1,4 @@
+import "dotenv/config";
 import "@/.server/queue/worker";
 import { RouterContextProvider } from "react-router";
 import { createRequestHandler } from "@react-router/express";
@@ -27,6 +28,6 @@ app.use(
         // @ts-ignore
         getLoadContext() {
             return context;
-        }
+        },
     })
 );

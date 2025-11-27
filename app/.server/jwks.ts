@@ -176,7 +176,8 @@ export async function getPrivateJwkForSigning(): Promise<JWK> {
         });
 
         if (!keyRow) {
-            throw new Error("No signing key available");
+            await rotateJwks();
+            return getPrivateJwkForSigning();
         }
 
         try {
