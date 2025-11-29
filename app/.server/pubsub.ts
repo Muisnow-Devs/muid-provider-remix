@@ -37,11 +37,13 @@ export interface IdentityEventPayloadMap {
 export function sendTopicMessage(
     topicName: PubSubTopics,
     attributes: Record<string, string>,
-    payload: object
+    payload: object,
+    orderedKey?: string
 ): Promise<string> {
     return client.topic(topicName).publishMessage({
         attributes,
         data: Buffer.from(JSON.stringify(payload)),
+        orderingKey: orderedKey,
     });
 }
 
@@ -70,6 +72,7 @@ export function sendIdentityEvent<T extends EventType>(
                 String(value),
             ])
         ),
-        message
+        message,
+        userId
     );
 }
