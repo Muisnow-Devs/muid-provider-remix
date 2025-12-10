@@ -106,8 +106,8 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
         !client ||
         client.disabled ||
         (clientId.endsWith(".corp.sanzi.io") &&
-            (!session.user.email.endsWith("@sanzi.io") ||
-                !session.user.email.endsWith("@muisnowdevs.one")))
+            !session.user.email.endsWith("@sanzi.io") &&
+            !session.user.email.endsWith("@muisnowdevs.one"))
     ) {
         throw data(
             {
@@ -190,19 +190,26 @@ export async function action({
     const { t } = getInstance(context);
     const formData = await request.formData();
     const authorize = formData.get("authorize") === "true";
-    await validateCSRFToken(
+
+    const { headers } = await validateCSRFToken(
         request,
         formData.get("csrfToken") as string | undefined
     );
 
     const { id } = pm;
     if (!id) {
-        throw new Response(t("errors:interaction.missing"), { status: 400 });
+        throw new Response(t("errors:interaction.missing"), {
+            status: 400,
+            headers,
+        });
     }
 
     const interaction = await provider.Interaction.find(id);
     if (!interaction) {
-        throw new Response(t("errors:interaction.notfound"), { status: 404 });
+        throw new Response(t("errors:interaction.notfound"), {
+            status: 404,
+            headers,
+        });
     }
 
     if (!authorize) {
@@ -246,7 +253,10 @@ export async function action({
     };
 
     await interaction.save(interaction.exp - getEpochTime());
-    return redirectDocument(interaction.returnTo, 303);
+    return redirectDocument(interaction.returnTo, {
+        status: 303,
+        headers,
+    });
 }
 
 export default function AuthorizePage() {
@@ -363,7 +373,7 @@ export function ErrorBoundary() {
                     <p>{t("authorize.description")}</p>
                     <p className="mt-4 rounded bg-gray-100 dark:bg-gray-800 p-4 overflow-x-auto text-sm wrap-break-word w-full font-mono">
                         {isRouteErrorResponse(error) &&
-                            (error.data.detail || "Unknown error")}
+                            (error.data.detail ?? error.data ?? "Unknown error")}
                         {!isRouteErrorResponse(error) &&
                             (error instanceof Error
                                 ? error.message

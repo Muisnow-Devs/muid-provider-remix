@@ -1,7 +1,6 @@
 import { AuthView, authViewPaths } from "@daveyplate/better-auth-ui";
 import Logo from "@/components/logo/main.svg?react";
 import { MetaFunction, useParams } from "react-router";
-import { useTranslation } from "react-i18next";
 import LanguageSelector from "@/components/languageSelector";
 import { PrivacyPolicy } from "@/components/service";
 

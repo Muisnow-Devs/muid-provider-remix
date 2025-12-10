@@ -1,7 +1,13 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
-import { commitSession, getSession } from "./sessions";
+import {
+    createCipheriv,
+    createDecipheriv,
+    randomBytes,
+    createHash,
+} from "crypto";
+import { commitSession, destroySession, getSession } from "./sessions";
 import { getPrivateJwkForSigning } from "./jwks";
 import { importJWK } from "jose";
+import { auth } from "./auth";
 
 const ENCRYPTION_ALGORITHM = "aes-256-gcm";
 
@@ -41,7 +47,17 @@ export function decryption(encryptedHex: string, encryptKey: string) {
 export async function commitCSRFToken(headers: Headers) {
     const session = await getSession(headers.get("Cookie"));
     const csrfToken = generateCSRFToken();
-    session.set("csrfToken", csrfToken);
+    const user = await auth.api.getSession({ headers });
+    if (!user) {
+        throw new Response("Unauthorized", { status: 401 });
+    }
+
+    const storeToken = createHash("sha256")
+        .update(csrfToken)
+        .update(user.user.id)
+        .digest("hex");
+
+    session.set("csrfToken", storeToken);
     return {
         csrfToken,
         headers: {
@@ -52,10 +68,28 @@ export async function commitCSRFToken(headers: Headers) {
 
 export async function validateCSRFToken(request: Request, csrfToken?: string) {
     const session = await getSession(request.headers.get("Cookie"));
-    const storedToken = session.get("csrfToken");
-    if (!storedToken || !csrfToken || storedToken !== csrfToken) {
-        throw new Response("Invalid CSRF Token", { status: 403 });
+    const user = await auth.api.getSession({ headers: request.headers });
+    if (!user) {
+        throw new Response("Unauthorized", { status: 401 });
     }
+
+    const shouldMatch = createHash("sha256")
+        .update(csrfToken || "")
+        .update(user.user.id)
+        .digest("hex");
+
+    const storedToken = session.get("csrfToken");
+    const sessionDestory = await destroySession(session);
+    if (!storedToken || !csrfToken || storedToken !== shouldMatch) {
+        throw new Response("Invalid CSRF Token", {
+            status: 403,
+            headers: {
+                "Set-Cookie": sessionDestory,
+            },
+        });
+    }
+
+    return { headers: { "Set-Cookie": sessionDestory } };
 }
 
 export async function calculateWebhookSignature(data: string) {

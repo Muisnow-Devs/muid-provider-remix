@@ -10,7 +10,7 @@ const { getSession, commitSession, destroySession } = createCookieSessionStorage
         name: "__session",
         httpOnly: true,
         path: "/",
-        sameSite: "lax",
+        sameSite: "strict",
         secure: true,
         maxAge: 60 * 60 * 24 * 7,
         secrets: [process.env.SESSION_SECRET],
