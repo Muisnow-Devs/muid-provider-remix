@@ -22,6 +22,7 @@ import { Link2Icon } from "lucide-react";
 import {
     data,
     isRouteErrorResponse,
+    Link,
     LoaderFunctionArgs,
     redirectDocument,
     useFetcher,
@@ -164,6 +165,11 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
                 scopes: scopeData.validScopes,
                 missing: missingScopes,
             },
+            user: {
+                id: session.user.id,
+                name: session.user.name,
+                email: session.user.email,
+            },
             csrf,
         },
         { headers: csrf.headers }
@@ -294,13 +300,11 @@ export default function AuthorizePage() {
                         <Link2Icon />
                         <UserAvatar user={user.data?.user} size="xl" />
                     </div>
+
                     <CardTitle className="text-2xl">
-                        {t("head_title")}
-                    </CardTitle>
-                    <CardDescription>
                         <Trans
                             ns="authorize"
-                            i18nKey="head_description"
+                            i18nKey="head_title"
                             components={{
                                 Application: (
                                     <span className="px-2 py-1 bg-white rounded text-black font-medium">
@@ -309,7 +313,9 @@ export default function AuthorizePage() {
                                 ),
                             }}
                         />
-                    </CardDescription>
+                    </CardTitle>
+
+                    <CardDescription>{t("head_description")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <ApplicationScopes scopes={missing} />
@@ -324,6 +330,12 @@ export default function AuthorizePage() {
                     )}
                 </CardContent>
                 <CardFooter className="gap-2 flex flex-col">
+                    <div className="rounded-md mb-2 bg-gray-100 dark:bg-gray-800 p-2 text-sm w-full text-center">
+                        {t("logined_as", {
+                            user_name: user.data?.user.name,
+                        })}
+                    </div>
+
                     {fetcher.state === "loading" && (
                         <Button disabled variant="outline" className="w-full">
                             <Spinner className="size-4" />
@@ -373,7 +385,9 @@ export function ErrorBoundary() {
                     <p>{t("authorize.description")}</p>
                     <p className="mt-4 rounded bg-gray-100 dark:bg-gray-800 p-4 overflow-x-auto text-sm wrap-break-word w-full font-mono">
                         {isRouteErrorResponse(error) &&
-                            (error.data.detail ?? error.data ?? "Unknown error")}
+                            (error.data.detail ??
+                                error.data ??
+                                "Unknown error")}
                         {!isRouteErrorResponse(error) &&
                             (error instanceof Error
                                 ? error.message

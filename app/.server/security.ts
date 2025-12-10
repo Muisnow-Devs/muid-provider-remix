@@ -81,7 +81,7 @@ export async function validateCSRFToken(request: Request, csrfToken?: string) {
     const storedToken = session.get("csrfToken");
     const sessionDestory = await destroySession(session);
     if (!storedToken || !csrfToken || storedToken !== shouldMatch) {
-        throw new Response("Invalid CSRF Token", {
+        throw new Response("Invalid CSRF Token, this might happened when you have multiple tabs open or your session expired. Please refresh the page and try again.", {
             status: 403,
             headers: {
                 "Set-Cookie": sessionDestory,

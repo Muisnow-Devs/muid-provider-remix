@@ -3,12 +3,14 @@
         "default": "授權 {{app_name}}",
         "error": "授權流程錯誤"
     },
-    "head_title": "授權應用程式",
-    "head_description": "應用程式 <Application /> 想要使用以下權限：",
+    "head_title": "授權應用程式 <Application />",
+    "head_description": "此應用程式想要使用以下權限：",
     "granted": "您已授予以下權限：",
     "button": {
         "authorize": "授權",
         "reject": "拒絕"
     },
-    "official": "官方"
+    "official": "官方",
+    "logined_as": "您已登入為 {{user_name}}",
+    "select_account": "選擇其他帳號"
 }

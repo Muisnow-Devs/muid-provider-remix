@@ -3,12 +3,14 @@
         "default": "Authorize {{app_name}}",
         "error": "Authorize error"
     },
-    "head_title": "Authorize application",
-    "head_description": "Appilcation <Application /> is requesting the following permissions:",
+    "head_title": "Authorize application <Application />",
+    "head_description": "This application is requesting the following permissions:",
     "granted": "You have granted the following permissions:",
     "button": {
         "authorize": "Authorize",
         "reject": "Reject"
     },
-    "official": "Official"
+    "official": "Official",
+    "logined_as": "You are logged in as {{user_name}}",
+    "select_account": "Select another account"
 }
