@@ -19,7 +19,7 @@ interface LanguageSelectorProps {
     className?: string;
 }
 
-export default function LanguageSelector({ className }: LanguageSelectorProps) {
+export default function LanguageSelector({ className }: Readonly<LanguageSelectorProps>) {
     const { i18n } = useTranslation();
     const [, setQuery] = useSearchParams();
 
