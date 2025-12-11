@@ -4,8 +4,6 @@ import provider, { loadGrantByUserIdClientId } from "@/.server/oidc";
 import { validateScope } from "@/.server/cache/scopes";
 import { commitCSRFToken, validateCSRFToken } from "@/.server/security";
 import { ApplicationIcon, ApplicationScopes } from "@/components/application";
-import { authClient } from "@/components/auth-client";
-import Logo from "@/components/logo/main.svg?react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -22,7 +20,6 @@ import { Link2Icon } from "lucide-react";
 import {
     data,
     isRouteErrorResponse,
-    Link,
     LoaderFunctionArgs,
     redirectDocument,
     useFetcher,
@@ -32,8 +29,8 @@ import {
 import { getInstance } from "@/.server/i18n";
 import { Trans, useTranslation } from "react-i18next";
 import { Route } from "./+types/authorize.$id";
-import LanguageSelector from "@/components/languageSelector";
-import { PrivacyPolicy } from "@/components/service";
+import { AuthPageLayout } from "@/components/layout";
+import { redirectToSelectAccount } from "@/utils";
 
 export async function loader({ params, request, context }: LoaderFunctionArgs) {
     const { t } = getInstance(context);
@@ -169,6 +166,7 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
                 id: session.user.id,
                 name: session.user.name,
                 email: session.user.email,
+                image: session.user.image,
             },
             csrf,
         },
@@ -193,6 +191,12 @@ export async function action({
     request,
     context,
 }: LoaderFunctionArgs) {
+    if (request.method === "PUT") {
+        const url = new URL(request.url);
+        const returnTo = url.pathname + url.search;
+        return redirectToSelectAccount(returnTo);
+    }
+
     const { t } = getInstance(context);
     const formData = await request.formData();
     const authorize = formData.get("authorize") === "true";
@@ -267,7 +271,6 @@ export async function action({
 
 export default function AuthorizePage() {
     const data = useLoaderData<typeof loader>();
-    const user = authClient.useSession();
     const fetcher = useFetcher<typeof action>();
     const { t } = useTranslation("authorize");
 
@@ -286,9 +289,7 @@ export default function AuthorizePage() {
     );
 
     return (
-        <div className="min-h-dvh w-full flex items-center justify-center p-4 flex-col gap-2">
-            <Logo width={180} className="py-5" />
-
+        <AuthPageLayout>
             <Card className="w-full max-w-lg">
                 <CardHeader className="text-center pb-4">
                     <div className="flex items-center mb-2 gap-4 justify-center">
@@ -298,7 +299,7 @@ export default function AuthorizePage() {
                             name={data.client.name}
                         />
                         <Link2Icon />
-                        <UserAvatar user={user.data?.user} size="xl" />
+                        <UserAvatar user={data.user} size="xl" />
                     </div>
 
                     <CardTitle className="text-2xl">
@@ -332,8 +333,9 @@ export default function AuthorizePage() {
                 <CardFooter className="gap-2 flex flex-col">
                     <div className="rounded-md mb-2 bg-gray-100 dark:bg-gray-800 p-2 text-sm w-full text-center">
                         {t("logined_as", {
-                            user_name: user.data?.user.name,
+                            user_name: data.user.name || data.user.email,
                         })}
+                        <Button variant="ghost" className="cursor-pointer" onClick={() => fetcher.submit({}, { method: "PUT" })}>{t("select_account")}</Button>
                     </div>
 
                     {fetcher.state === "loading" && (
@@ -360,10 +362,7 @@ export default function AuthorizePage() {
                     )}
                 </CardFooter>
             </Card>
-
-            <PrivacyPolicy />
-            <LanguageSelector />
-        </div>
+        </AuthPageLayout>
     );
 }
 
@@ -373,7 +372,7 @@ export function ErrorBoundary() {
     console.error(error);
 
     return (
-        <div className="min-h-dvh w-full flex items-center justify-center p-4 flex-col gap-2">
+        <AuthPageLayout>
             <Card className="w-full max-w-lg">
                 <CardHeader>
                     <CardTitle>{t("authorize.title")}</CardTitle>
@@ -395,9 +394,7 @@ export function ErrorBoundary() {
                     </p>
                 </CardContent>
             </Card>
-
-            <PrivacyPolicy />
-            <LanguageSelector />
-        </div>
+        </AuthPageLayout>
     );
 }
+
