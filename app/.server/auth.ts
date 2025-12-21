@@ -50,7 +50,7 @@ export const auth = betterAuth({
             endpoints: [
                 "/email-otp/send-verification-otp",
                 // "/sign-in/email-otp",
-            ]
+            ],
         }),
         multiSession(),
         emailOTP({ sendVerificationOTP }),
