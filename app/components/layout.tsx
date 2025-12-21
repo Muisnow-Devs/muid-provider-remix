@@ -6,10 +6,10 @@ import { Separator } from "./ui/separator";
 
 export function AuthPageLayout({ children }: PropsWithChildren) {
     return (
-        <div className="min-h-dvh w-full flex sm:items-center sm:justify-center p-4 flex-col gap-2 bg-card sm:bg-transparent">
-            <Logo width={180} className="sm:py-5 mt-10 sm:mt-0" />
+        <div className="min-h-dvh w-full flex items-center sm:justify-center p-4 flex-col gap-2 bg-card sm:bg-transparent">
+            <Logo width={180} className="my-5 mt-10 sm:mt-0" />
 
-            <div>{children}</div>
+            {children}
 
             <Separator className="sm:hidden my-3" />
 

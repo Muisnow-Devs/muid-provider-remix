@@ -37,7 +37,7 @@ export default function AuthPage() {
                 path={path}
                 classNames={{
                     base: "bg-transparent sm:bg-card border-none sm:border shadow-none max-w-full sm:max-w-sm",
-                    header: "px-0 sm:px-6",
+                    header: "px-0 sm:px-6 text-center",
                     content: "px-0 sm:px-6",
                 }}
             />

@@ -64,7 +64,7 @@ export default function AccountSelector() {
 
     return (
         <AuthPageLayout>
-            <Card className="w-full max-w-lg">
+            <Card className="w-full max-w-lg sm:border border-none">
                 <CardHeader className="text-center pb-4">
                     <CardTitle className="text-2xl">
                         Select an Account

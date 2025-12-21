@@ -290,7 +290,7 @@ export default function AuthorizePage() {
 
     return (
         <AuthPageLayout>
-            <Card className="w-full max-w-lg">
+            <Card className="w-full max-w-lg sm:border border-none">
                 <CardHeader className="text-center pb-4">
                     <div className="flex items-center mb-2 gap-4 justify-center">
                         <ApplicationIcon
@@ -335,7 +335,15 @@ export default function AuthorizePage() {
                         {t("logined_as", {
                             user_name: data.user.name || data.user.email,
                         })}
-                        <Button variant="ghost" className="cursor-pointer" onClick={() => fetcher.submit({}, { method: "PUT" })}>{t("select_account")}</Button>
+                        <Button
+                            variant="ghost"
+                            className="cursor-pointer py-0"
+                            onClick={() =>
+                                fetcher.submit({}, { method: "PUT" })
+                            }
+                        >
+                            {t("select_account")}
+                        </Button>
                     </div>
 
                     {fetcher.state === "loading" && (
@@ -397,4 +405,3 @@ export function ErrorBoundary() {
         </AuthPageLayout>
     );
 }
-
