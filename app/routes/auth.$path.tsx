@@ -36,7 +36,7 @@ export default function AuthPage() {
             <AuthView
                 path={path}
                 classNames={{
-                    base: "bg-transparent sm:bg-card border-none sm:border max-w-full sm:max-w-sm",
+                    base: "bg-transparent sm:bg-card border-none sm:border shadow-none max-w-full sm:max-w-sm",
                     header: "px-0 sm:px-6",
                     content: "px-0 sm:px-6",
                 }}

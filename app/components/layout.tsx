@@ -11,7 +11,7 @@ export function AuthPageLayout({ children }: PropsWithChildren) {
 
             <div>{children}</div>
 
-            <Separator className="sm:hidden my-6" />
+            <Separator className="sm:hidden my-3" />
 
             <div className="max-w-min text-center gap-2 flex flex-col min-w-full items-center">
                 <PrivacyPolicy />
