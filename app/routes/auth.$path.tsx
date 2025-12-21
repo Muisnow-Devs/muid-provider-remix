@@ -32,10 +32,15 @@ export default function AuthPage() {
     const { path } = useParams();
 
     return (
-        <main className="w-full min-h-screen flex flex-col items-center justify-center p-4">
-            <AuthPageLayout>
-                <AuthView path={path} />
-            </AuthPageLayout>
-        </main>
+        <AuthPageLayout>
+            <AuthView
+                path={path}
+                classNames={{
+                    base: "bg-transparent sm:bg-card border-none sm:border max-w-full sm:max-w-sm",
+                    header: "px-0 sm:px-6",
+                    content: "px-0 sm:px-6",
+                }}
+            />
+        </AuthPageLayout>
     );
 }
