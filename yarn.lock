@@ -5004,9 +5004,9 @@ koa@^3.0.1:
     vary "^1.1.2"
 
 kysely@^0.28.5:
-  version "0.28.8"
-  resolved "https://registry.yarnpkg.com/kysely/-/kysely-0.28.8.tgz#064340cfa489833fdb11f026cbc5dacf7e37b5fa"
-  integrity sha512-QUOgl5ZrS9IRuhq5FvOKFSsD/3+IA6MLE81/bOOTRA/YQpKDza2sFdN5g6JCB9BOpqMJDGefLCQ9F12hRS13TA==
+  version "0.28.14"
+  resolved "https://registry.yarnpkg.com/kysely/-/kysely-0.28.14.tgz#94cb38767aea5dfa18ecea2137497560f276edf4"
+  integrity sha512-SU3lgh0rPvq7upc6vvdVrCsSMUG1h3ChvHVOY7wJ2fw4C9QEB7X3d5eyYEyULUX7UQtxZJtZXGuT6U2US72UYA==
 
 leac@^0.6.0:
   version "0.6.0"
