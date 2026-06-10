@@ -3,7 +3,7 @@ import Provider, {
     errors,
     KoaContextWithOIDC,
 } from "oidc-provider";
-import RedisAdapter from "./adapters/RedisAdaper";
+import RedisAdapter from "./adapters/RedisAdapter";
 import DatabaseAdapter from "./adapters/DatabaseAdapter";
 import ClientAdapter from "./adapters/ClientAdapter";
 import GrantAdapter from "./adapters/GrantAdapter";

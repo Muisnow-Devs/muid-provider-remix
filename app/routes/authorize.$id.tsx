@@ -2,6 +2,7 @@ import { checkSession } from "@/.server/auth";
 import { findClient } from "@/.server/cache/clients";
 import provider, { loadGrantByUserIdClientId } from "@/.server/oidc";
 import { validateScope } from "@/.server/cache/scopes";
+import { splitScopes } from "@/.server/utils/scopes";
 import { commitCSRFToken, validateCSRFToken } from "@/.server/security";
 import { ApplicationIcon, ApplicationScopes } from "@/components/application";
 import { Button } from "@/components/ui/button";
@@ -116,9 +117,9 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
         );
     }
 
-    const scopes = (
+    const scopes = splitScopes(
         (interaction.params.scope as string) ?? "openid profile email"
-    ).split(" ");
+    );
 
     const scopeData = await validateScope(scopes);
     if (scopeData.invalidScopes?.length) {
