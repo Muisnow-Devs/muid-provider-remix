@@ -2,6 +2,7 @@ import { data, LoaderFunctionArgs } from "react-router";
 import { cacheHeader } from "pretty-cache-header";
 import { z } from "zod";
 import { namespaces, translations } from "@/.server/i18n";
+import { logger } from "@/.server/logger";
 
 export async function loader({ params }: LoaderFunctionArgs) {
     const lng = z.enum(Object.keys(translations)).safeParse(params.lng);
@@ -33,7 +34,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
         return data(translation, { headers });
     } catch (error) {
-        console.error("Error loading translation:", error);
+        logger.error("Error loading translation", error instanceof Error ? error : { error });
         return data({ error: "Translation file not found" }, { status: 404 });
     }
 }

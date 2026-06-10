@@ -12,7 +12,26 @@ const app = express();
 
 app.use(compression());
 app.disable("x-powered-by");
-app.enable('trust proxy');
+
+// Trust only the configured proxy hops/addresses instead of blanket trust,
+// so clients cannot spoof X-Forwarded-For (which would defeat IP rate limiting).
+// TRUST_PROXY: integer hop count, comma-separated CIDRs/addresses, or "false"/"0"
+// to disable. Defaults to 1 (a single reverse proxy in front of the app).
+const trustProxyEnv = process.env.TRUST_PROXY?.trim();
+let trustProxy = 1;
+if (trustProxyEnv !== undefined && trustProxyEnv !== "") {
+    if (trustProxyEnv === "false" || trustProxyEnv === "0") {
+        trustProxy = false;
+    } else if (trustProxyEnv === "true") {
+        // Explicit opt-in to trusting every hop (not recommended).
+        trustProxy = true;
+    } else if (/^\d+$/.test(trustProxyEnv)) {
+        trustProxy = Number.parseInt(trustProxyEnv, 10);
+    } else {
+        trustProxy = trustProxyEnv.split(",").map((entry) => entry.trim());
+    }
+}
+app.set("trust proxy", trustProxy);
 
 if (DEVELOPMENT) {
     console.log("Starting development server");
