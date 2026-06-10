@@ -4,6 +4,7 @@ import { RouterContextProvider } from "react-router";
 import { createRequestHandler } from "@react-router/express";
 import express from "express";
 import oidc from "@/.server/oidc";
+import { oidcRateLimit } from "@/.server/rateLimit";
 import { userinfoRoute } from "./userinfo";
 
 declare module "react-router" {
@@ -19,6 +20,7 @@ app.use(function (req, res, next) {
 });
 
 app.use("/oauth2", userinfoRoute);
+app.use("/oauth2", oidcRateLimit);
 app.use("/oauth2", oidc.callback());
 
 const context = new RouterContextProvider();
