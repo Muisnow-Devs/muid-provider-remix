@@ -14,6 +14,7 @@ import { OAuthInteractionInvalidError } from "@/errors/common";
 import { auth } from "./auth";
 import { getEpochTime } from "@/lib/utils";
 import { validateScope } from "./cache/scopes";
+import config from "./config";
 
 export const runtime = "nodejs";
 export const OIDC_CLAIMS = {
@@ -64,9 +65,13 @@ const configuration: Configuration = {
         introspection: {
             enabled: true,
             allowedPolicy: (ctx, client, token) => {
+                // A client may introspect its own tokens. Additionally,
+                // service accounts (clients whose ID ends with the service
+                // client suffix) are privileged: they may introspect tokens
+                // of other clients.
                 if (
                     client.clientId === token.clientId ||
-                    client.clientId.endsWith(".service.sanzi.io")
+                    client.clientId.endsWith(config.serviceClientSuffix)
                 ) {
                     return true;
                 }
@@ -78,7 +83,7 @@ const configuration: Configuration = {
         resourceIndicators: {
             enabled: true,
             useGrantedResource: () => true,
-            defaultResource: () => "https://api.muisnowdevs.one",
+            defaultResource: () => config.oidcDefaultResource,
             async getResourceServerInfo(ctx, indicator, client) {
                 if (!indicator)
                     throw new Error("No resource indicator provided");

@@ -1,4 +1,5 @@
 import { checkSession } from "@/.server/auth";
+import config from "@/.server/config";
 import { ClientDetails, findClient } from "@/.server/cache/clients";
 import { getLocale } from "@/.server/i18n";
 import provider from "@/.server/oidc";
@@ -46,6 +47,7 @@ interface SimpleClientDetails {
     name: string | null;
     metadata: Record<string, unknown> | null;
     icon: string | null;
+    isServiceAccount: boolean;
 }
 
 export const meta: MetaFunction = () => {
@@ -76,6 +78,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
             metadata: app.metadata,
             name: app.name,
             icon: app.icon,
+            isServiceAccount: app.clientId.endsWith(config.serviceClientSuffix),
         }));
 
     const applicationsMap: Record<string, SimpleClientDetails> =
@@ -224,7 +227,7 @@ function AuthorizedApplicationCard({
                 <CardHeader>
                     <div className="flex items-center gap-4 mb-2">
                         <ApplicationIcon
-                            clientId={id}
+                            isServiceAccount={detail.isServiceAccount}
                             icon={detail.icon}
                             name={detail.name ?? "OAuth Application"}
                         />
