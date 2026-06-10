@@ -133,6 +133,7 @@ export function decryptToken(value: string): string {
         );
         throw new Error(
             "Failed to decrypt account token: wrong TOKEN_ENC_KEY or corrupted ciphertext",
+            { cause: error },
         );
     }
 }

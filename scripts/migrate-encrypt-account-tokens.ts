@@ -53,7 +53,7 @@ async function main() {
                 idToken: true,
             },
         });
-        scannedRows = accounts.length;
+        scannedRows += accounts.length;
 
         for (const account of accounts) {
             const data: Partial<Record<AccountTokenField, string>> = {};

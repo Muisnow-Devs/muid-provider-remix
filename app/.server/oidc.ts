@@ -121,7 +121,7 @@ const configuration: Configuration = {
             enabled: true,
             useGrantedResource: () => true,
             defaultResource: () => config.oidcDefaultResource,
-            async getResourceServerInfo(ctx, indicator, client) {
+            async getResourceServerInfo(ctx, indicator, _client) {
                 if (!indicator)
                     throw new Error("No resource indicator provided");
 
