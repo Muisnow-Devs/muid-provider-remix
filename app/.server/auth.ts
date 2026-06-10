@@ -17,6 +17,8 @@ import emailVerificationTemplate, {
 } from "./templates/emailVerification";
 import { SocialProviders } from "better-auth/social-providers";
 import { redirectToLogin } from "@/utils";
+import { secondaryStorage } from "./storage";
+import { rateLimitEnv } from "./rateLimit";
 
 const socialProviders: SocialProviders = {
     google: {
@@ -57,6 +59,67 @@ export const auth = betterAuth({
         emailOTP({ sendVerificationOTP }),
     ],
     secret: process.env.BETTER_AUTH_SECRET!,
+    // Redis-backed storage: used for rate-limit counters (storage defaults to
+    // "secondary-storage" when this is set) and session caching.
+    secondaryStorage,
+    rateLimit: {
+        enabled: true,
+        window: rateLimitEnv("RATE_LIMIT_AUTH_WINDOW", 60),
+        max: rateLimitEnv("RATE_LIMIT_AUTH_MAX", 60),
+        // Paths are relative to the auth base path; first matching rule wins,
+        // so specific paths must come before wildcards.
+        customRules: {
+            // Endpoints that send an email (most abusable)
+            "/email-otp/send-verification-otp": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_OTP_SEND_MAX", 3),
+            },
+            "/forget-password/email-otp": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_OTP_SEND_MAX", 3),
+            },
+            "/send-verification-email": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_OTP_SEND_MAX", 3),
+            },
+            "/delete-user": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_OTP_SEND_MAX", 3),
+            },
+            // OTP verification (brute-forceable codes)
+            "/email-otp/*": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_OTP_VERIFY_MAX", 5),
+            },
+            // Sign-in / sign-up attempts (covers /sign-in/email-otp,
+            // /sign-in/social, /sign-in/username, ...)
+            "/sign-in/*": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_SIGN_IN_MAX", 5),
+            },
+            "/sign-up/*": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_SIGN_IN_MAX", 5),
+            },
+            // Passkey challenge generation / verification
+            "/passkey/generate-authenticate-options": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_PASSKEY_MAX", 10),
+            },
+            "/passkey/generate-register-options": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_PASSKEY_MAX", 10),
+            },
+            "/passkey/verify-authentication": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_PASSKEY_MAX", 10),
+            },
+            "/passkey/verify-registration": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_PASSKEY_MAX", 10),
+            },
+        },
+    },
     emailVerification: { sendVerificationEmail },
     user: {
         deleteUser: {
