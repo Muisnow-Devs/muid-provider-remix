@@ -1,6 +1,5 @@
 import { Worker } from "bullmq";
 import logger from "../logger";
-import client from "../redis";
 import { DefaultTask } from "./tasks/DefaultTask";
 import { AppEventMap, AppQueueEvent, QueueNames } from "./tasks/ProcessData";
 import QueueTask from "./tasks/QueueTask";

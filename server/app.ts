@@ -7,6 +7,8 @@ import oidc from "@/.server/oidc";
 import { userinfoRoute } from "./userinfo";
 
 declare module "react-router" {
+    // Declaration-merging hook for consumers; intentionally empty here.
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     interface AppLoadContext {}
 }
 
@@ -25,7 +27,6 @@ const context = new RouterContextProvider();
 app.use(
     createRequestHandler({
         build: () => import("virtual:react-router/server-build"),
-        // @ts-ignore
         getLoadContext() {
             return context;
         },

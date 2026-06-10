@@ -1,0 +1,11 @@
+app/.server/generated/
+build/
+.react-router/
+node_modules/
+public/
+agent_runs/
+*.md
+prisma/migrations/
+app/locales/
+package-lock.json
+yarn.lock

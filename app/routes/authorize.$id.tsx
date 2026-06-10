@@ -243,7 +243,7 @@ export async function action({
     const grant =
         (existingGrant ? await provider.Grant.find(existingGrant) : null) ??
         new provider.Grant({
-            accountId: interaction.session?.accountId!,
+            accountId: interaction.session?.accountId as string,
             clientId: interaction.params.client_id! as string,
         });
 

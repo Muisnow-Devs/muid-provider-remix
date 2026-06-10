@@ -119,7 +119,6 @@ async function sendDeleteAccountVerification({
 async function sendVerificationEmail({
     user,
     url,
-    token,
 }: {
     user: User;
     url: string;

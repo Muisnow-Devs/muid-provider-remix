@@ -1,6 +1,5 @@
 import { Adapter, AdapterPayload } from "oidc-provider";
 import prisma from "../prisma";
-import { logger } from "../logger";
 
 /**
  * Grant Adapter for OIDC Provider using Prisma OauthConsent model

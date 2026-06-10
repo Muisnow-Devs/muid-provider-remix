@@ -31,7 +31,7 @@ export interface IdentityEventPayloadMap {
     [EventType.ACCOUNT_STATUS_CHANGED]: {
         status: "active" | "suspended" | "deactivated";
     };
-    [EventType.ACCESS_REVOKED]: {};
+    [EventType.ACCESS_REVOKED]: Record<string, never>;
 }
 
 export function sendTopicMessage(

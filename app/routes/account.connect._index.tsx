@@ -126,7 +126,7 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     const clientId = grant?.clientId;
-    grant && (await grant.destroy());
+    await grant.destroy();
 
     await enqueue({
         type: "user.revoked",

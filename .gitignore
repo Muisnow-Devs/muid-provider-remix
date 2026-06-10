@@ -9,5 +9,6 @@
 /app/.server/generated/
 stats.html
 agent_runs/
+tsconfig.tsbuildinfo
 
 google-service-account.json
