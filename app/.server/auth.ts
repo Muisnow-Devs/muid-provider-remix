@@ -12,6 +12,7 @@ import {
 import prisma from "./prisma";
 import { enqueue } from "./queue/default";
 import emailVerificationTemplate, {
+    EmailAction,
     EmailType,
 } from "./templates/emailVerification";
 import { SocialProviders } from "better-auth/social-providers";
@@ -28,7 +29,7 @@ const socialProviders: SocialProviders = {
 export const auth = betterAuth({
     appName: "MuID",
     database: prismaAdapter(prisma, {
-        provider: "postgresql",
+        provider: "mysql",
     }),
     emailAndPassword: {
         enabled: false,
@@ -93,6 +94,31 @@ export const auth = betterAuth({
     },
 });
 
+async function enqueueTemplateEmail({
+    to,
+    name,
+    subject,
+    action,
+}: {
+    to: string;
+    name: string;
+    subject: string;
+    action: EmailAction;
+}) {
+    await enqueue({
+        type: "email.sent",
+        payload: {
+            to,
+            subject,
+            body: await emailVerificationTemplate({
+                name,
+                heading: subject,
+                action,
+            }),
+        },
+    });
+}
+
 async function sendDeleteAccountVerification({
     user,
     url,
@@ -100,44 +126,27 @@ async function sendDeleteAccountVerification({
     user: User;
     url: string;
 }) {
-    const name = user.name || user.email.split("@")[0];
-    const subject = "Verify your account deletion";
-    await enqueue({
-        type: "email.sent",
-        payload: {
-            to: user.email,
-            subject,
-            body: await emailVerificationTemplate({
-                name,
-                heading: subject,
-                action: { type: EmailType.Deletion, url },
-            }),
-        },
+    await enqueueTemplateEmail({
+        to: user.email,
+        name: user.name || user.email.split("@")[0],
+        subject: "Verify your account deletion",
+        action: { type: EmailType.Deletion, url },
     });
 }
 
 async function sendVerificationEmail({
     user,
     url,
-    token,
 }: {
     user: User;
     url: string;
     token: string;
 }) {
-    const name = user.name || user.email.split("@")[0];
-    const subject = "Verify your email address";
-    await enqueue({
-        type: "email.sent",
-        payload: {
-            to: user.email,
-            subject,
-            body: await emailVerificationTemplate({
-                name,
-                heading: subject,
-                action: { type: EmailType.Verify, url },
-            }),
-        },
+    await enqueueTemplateEmail({
+        to: user.email,
+        name: user.name || user.email.split("@")[0],
+        subject: "Verify your email address",
+        action: { type: EmailType.Verify, url },
     });
 }
 
@@ -150,19 +159,11 @@ async function sendVerificationOTP({
     otp: string;
     type: "sign-in" | "email-verification" | "forget-password";
 }) {
-    const subject =
-        type === "sign-in" ? "Your login OTP" : "Your verification OTP";
-    await enqueue({
-        type: "email.sent",
-        payload: {
-            to: email,
-            subject,
-            body: await emailVerificationTemplate({
-                name: email,
-                heading: subject,
-                action: { type: EmailType.OTP, otp },
-            }),
-        },
+    await enqueueTemplateEmail({
+        to: email,
+        name: email,
+        subject: type === "sign-in" ? "Your login OTP" : "Your verification OTP",
+        action: { type: EmailType.OTP, otp },
     });
 }
 
