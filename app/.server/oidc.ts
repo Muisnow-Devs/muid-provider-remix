@@ -14,6 +14,7 @@ import { OAuthInteractionInvalidError } from "@/errors/common";
 import { auth } from "./auth";
 import { getEpochTime } from "@/lib/utils";
 import { validateScope } from "./cache/scopes";
+import { verifySecretHash } from "./utils/secretHash";
 import config from "./config";
 
 export const runtime = "nodejs";
@@ -75,6 +76,11 @@ const configuration: Configuration = {
 
     // Supported claims
     claims: OIDC_CLAIMS,
+
+    // Client secrets are stored as scrypt hashes, so only auth methods that
+    // work with hashed secret verification are allowed (client_secret_jwt
+    // would require the raw secret for HMAC and must never be offered)
+    clientAuthMethods: ["client_secret_basic", "client_secret_post"],
 
     // Sign the provider's state cookies (signing turns on automatically
     // once keys are provided; see the OIDC_COOKIE_KEYS check above).
@@ -247,6 +253,23 @@ async function loadExistingGrant(ctx: KoaContextWithOIDC) {
 }
 
 const provider = new Provider(issuer, configuration);
+
+// Stored client secrets are scrypt hashes (see app/.server/utils/secretHash.ts),
+// so override oidc-provider's default constant-time plaintext comparison with
+// timing-safe hash verification. The call site in lib/shared/client_auth.js
+// awaits this, so the async override covers client_secret_basic,
+// client_secret_post and introspection endpoint authentication.
+(
+    provider.Client.prototype as unknown as {
+        compareClientSecret(actual: string): Promise<boolean>;
+    }
+).compareClientSecret = async function (
+    this: { clientSecret?: string },
+    actual: string
+) {
+    return verifySecretHash(this.clientSecret, actual);
+};
+
 provider.proxy = true;
 provider.on("server_error", (error) => {
     logger.error("OIDC Provider server error:", { error: error.message });

@@ -1,6 +1,7 @@
-import { Adapter, AdapterPayload } from "oidc-provider";
+﻿import { Adapter, AdapterPayload } from "oidc-provider";
 import prisma from "../prisma";
 import { findClient, invalidateClientCache } from "../cache/clients";
+import { hashSecret } from "../utils/secretHash";
 import { ignoreRecordNotFound } from "./shared";
 
 /**
@@ -25,26 +26,39 @@ class ClientAdapter implements Adapter {
     ): Promise<void> {
         // Extract client metadata from payload
 
+        // Never persist the plaintext secret; store an scrypt hash instead
+        const hashedSecret = payload.client_secret
+            ? await hashSecret(payload.client_secret)
+            : "";
+
+        // Strip the plaintext secret from the stored metadata as well, since
+        // the metadata column is cached (see app/.server/cache/clients.ts)
+        const { client_secret: _clientSecret, ...metadataPayload } = payload;
+        const metadata = JSON.stringify(metadataPayload);
+
         await invalidateClientCache(id);
         await prisma.oauthApplication.upsert({
             where: { clientId: id },
             create: {
                 id: crypto.randomUUID(),
                 clientId: id,
-                clientSecret: payload.client_secret || "",
+                clientSecret: hashedSecret,
                 name: payload.client_name || "Unnamed Client",
                 icon: payload.logo_uri,
                 redirectURLs: payload.redirect_uris?.join(",") || "",
                 type: payload.application_type || "web",
-                metadata: JSON.stringify(payload),
+                metadata,
             },
             update: {
-                clientSecret: payload.client_secret,
+                clientSecret:
+                    payload.client_secret === undefined
+                        ? undefined
+                        : hashedSecret,
                 name: payload.client_name || "Unnamed Client",
                 icon: payload.logo_uri,
                 redirectURLs: payload.redirect_uris?.join(",") || "",
                 type: payload.application_type || "web",
-                metadata: JSON.stringify(payload),
+                metadata,
             },
         });
     }
@@ -64,12 +78,12 @@ class ClientAdapter implements Adapter {
             select: { clientSecret: true },
         });
         if (!secret) {
-            throw new Error(
-                `FUCK, Client secret for ${id} not found, but that should not happen`
-            );
+            throw new Error(`Client secret not found for client: ${id}`);
         }
 
         // Construct AdapterPayload from database fields
+        // Note: client_secret holds the stored scrypt hash; verification is
+        // handled by the compareClientSecret override in oidc.ts
 
         return {
             client_id: client.clientId!,
