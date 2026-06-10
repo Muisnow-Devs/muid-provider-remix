@@ -41,7 +41,13 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
 
     if (id === "error") {
         const url = new URL(request.url);
-        const detail = url.searchParams.get("detail") || "No details provided";
+        // `detail` comes from the oidc-provider renderError redirect and is
+        // attacker-influenceable. It is rendered as plain text by React in
+        // the ErrorBoundary (no dangerouslySetInnerHTML), so there is no XSS
+        // reflection; we still cap its length to keep the page sane.
+        const detail = (
+            url.searchParams.get("detail") || "No details provided"
+        ).slice(0, 500);
         throw data(
             {
                 title: t("authorize:title.error"),

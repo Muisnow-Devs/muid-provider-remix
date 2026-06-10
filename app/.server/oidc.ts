@@ -24,6 +24,24 @@ export const OIDC_CLAIMS = {
 
 const issuer = process.env.OIDC_ISSUER || "http://localhost:3000";
 
+// Keys used to sign/verify the provider's state cookies (_session,
+// _interaction, _interaction_resume). Without keys those cookies are
+// UNSIGNED and tamperable. OIDC_COOKIE_KEYS is comma-separated: the first
+// key signs new cookies, the remaining keys still verify (key rotation).
+const cookieKeys = (process.env.OIDC_COOKIE_KEYS ?? "")
+    .split(",")
+    .map((key) => key.trim())
+    .filter(Boolean);
+if (cookieKeys.length === 0) {
+    const message =
+        "OIDC_COOKIE_KEYS is not set; OIDC state cookies would be unsigned and tamperable. " +
+        "Set OIDC_COOKIE_KEYS to one or more comma-separated random secrets.";
+    if (process.env.NODE_ENV === "production") {
+        throw new Error(message);
+    }
+    logger.error(message);
+}
+
 // Models that require long-term persistence in database
 const PERSISTENT_MODELS = [
     "Grant",
@@ -56,6 +74,19 @@ const configuration: Configuration = {
 
     // Supported claims
     claims: OIDC_CLAIMS,
+
+    // Sign the provider's state cookies (signing turns on automatically
+    // once keys are provided; see the OIDC_COOKIE_KEYS check above).
+    cookies: {
+        keys: cookieKeys,
+    },
+
+    // Require PKCE for ALL clients (the v9 default only requires it for
+    // public clients). S256 is the only code_challenge_method oidc-provider
+    // v9 supports; "plain" is always rejected.
+    pkce: {
+        required: () => true,
+    },
 
     // Supported features
     features: {
@@ -108,6 +139,10 @@ const configuration: Configuration = {
         },
     },
 
+    // Issued tokens are NOT bound to the OP session lifetime: access/refresh
+    // tokens stay valid for their own ttl (below) even after the short-lived
+    // Session expires. This is intentional so clients keep working after the
+    // 5-minute OP session ends.
     expiresWithSession: () => false,
     renderError: async (ctx, out, error) => {
         if (error instanceof OAuthInteractionInvalidError) {
@@ -126,14 +161,17 @@ const configuration: Configuration = {
         );
     },
 
+    // Token/artifact lifetimes (seconds). Note the OP Session is deliberately
+    // short (5 minutes) — combined with expiresWithSession: () => false above,
+    // tokens outlive the OP session by design.
     ttl: {
-        Interaction: 10 * 60, // 10 minutes
+        Interaction: 10 * 60, // 10 minutes — time to finish login/consent
         AccessToken: 60 * 60, // 1 hour
-        AuthorizationCode: 10 * 60, // 10 minutes
+        AuthorizationCode: 10 * 60, // 10 minutes — single-use code exchange window
         IdToken: 60 * 60, // 1 hour
         RefreshToken: 27 * 24 * 60 * 60, // 27 days
         DeviceCode: 10 * 60, // 10 minutes
-        Session: 5 * 60,
+        Session: 5 * 60, // 5 minutes — OP session cookie lifetime
     },
 
     findAccount: async (_, id) => getUserInfoByScopes(id),
