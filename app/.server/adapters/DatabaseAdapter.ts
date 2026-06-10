@@ -1,5 +1,10 @@
 import { Adapter, AdapterPayload } from "oidc-provider";
 import prisma from "../prisma";
+import {
+    ignoreRecordNotFound,
+    isExpired,
+    toAdapterPayload,
+} from "./shared";
 
 /**
  * Database Adapter for OIDC Provider using Prisma
@@ -83,23 +88,13 @@ class DatabaseAdapter implements Adapter {
         if (!model) return undefined;
 
         // Check if expired
-        if (model.expiresAt && model.expiresAt.getTime() < Date.now()) {
+        if (isExpired(model.expiresAt)) {
             // Expired, clean up and return undefined
             await this.destroy(id);
             return undefined;
         }
 
-        const payload = JSON.parse(model.payload) as AdapterPayload;
-
-        // If consumed, add consumed property
-        if (model.consumedAt) {
-            return {
-                ...payload,
-                consumed: Math.floor(model.consumedAt.getTime() / 1000),
-            };
-        }
-
-        return payload;
+        return toAdapterPayload(model);
     }
 
     /**
@@ -118,16 +113,7 @@ class DatabaseAdapter implements Adapter {
 
         if (!model) return undefined;
 
-        const payload = JSON.parse(model.payload) as AdapterPayload;
-
-        if (model.consumedAt) {
-            return {
-                ...payload,
-                consumed: Math.floor(model.consumedAt.getTime() / 1000),
-            };
-        }
-
-        return payload;
+        return toAdapterPayload(model);
     }
 
     /**
@@ -146,16 +132,7 @@ class DatabaseAdapter implements Adapter {
 
         if (!model) return undefined;
 
-        const payload = JSON.parse(model.payload) as AdapterPayload;
-
-        if (model.consumedAt) {
-            return {
-                ...payload,
-                consumed: Math.floor(model.consumedAt.getTime() / 1000),
-            };
-        }
-
-        return payload;
+        return toAdapterPayload(model);
     }
 
     /**
@@ -180,9 +157,7 @@ class DatabaseAdapter implements Adapter {
         
         await prisma.oidcModel.delete({
             where: { id: key },
-        }).catch(() => {
-            // Ignore if not found
-        });
+        }).catch(ignoreRecordNotFound("DatabaseAdapter.destroy"));
     }
 
     /**

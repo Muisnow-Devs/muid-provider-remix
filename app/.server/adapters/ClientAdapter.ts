@@ -1,6 +1,7 @@
 import { Adapter, AdapterPayload } from "oidc-provider";
 import prisma from "../prisma";
 import { findClient, invalidateClientCache } from "../cache/clients";
+import { ignoreRecordNotFound } from "./shared";
 
 /**
  * Client Adapter for OIDC Provider
@@ -115,9 +116,7 @@ class ClientAdapter implements Adapter {
             .delete({
                 where: { clientId: id },
             })
-            .catch(() => {
-                // Ignore if not found
-            });
+            .catch(ignoreRecordNotFound("ClientAdapter.destroy"));
     }
 
     /**
