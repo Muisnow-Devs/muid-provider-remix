@@ -146,7 +146,6 @@ export default function AccountConnectRoute() {
     const auth = authClient.useSession();
 
     useEffect(() => {
-        console.log("Auth session changed, reloading connected apps");
         navigate(".");
     }, [auth.data, fetcher.state]);
 
