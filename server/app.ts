@@ -1,4 +1,6 @@
 import "dotenv/config";
+// Validate the environment before any other server module reads it.
+import "@/.server/env";
 import "@/.server/queue/worker";
 import { RouterContextProvider } from "react-router";
 import { createRequestHandler } from "@react-router/express";

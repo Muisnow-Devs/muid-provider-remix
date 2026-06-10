@@ -24,6 +24,15 @@ Install the dependencies:
 npm install
 ```
 
+### Environment variables
+
+Copy [`.env.example`](./.env.example) to `.env` and fill in the values. Every
+variable is documented there. The server validates the environment at startup
+(`app/.server/env.ts`) and refuses to boot if required variables are missing
+or if secrets are too short or still set to placeholder values, so configure
+the environment before starting the app. Never commit your `.env` file or
+service account credentials.
+
 ### Development
 
 Start the development server with HMR:
