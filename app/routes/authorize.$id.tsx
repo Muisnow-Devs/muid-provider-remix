@@ -3,6 +3,7 @@ import { findClient } from "@/.server/cache/clients";
 import provider, { loadGrantByUserIdClientId } from "@/.server/oidc";
 import { validateScope } from "@/.server/cache/scopes";
 import { commitCSRFToken, validateCSRFToken } from "@/.server/security";
+import config from "@/.server/config";
 import { ApplicationIcon, ApplicationScopes } from "@/components/application";
 import { Button } from "@/components/ui/button";
 import {
@@ -99,13 +100,17 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
         );
     }
 
+    // Corp clients are restricted to users whose email domain (the part
+    // after "@", compared exactly and case-insensitively) is allowlisted.
+    const emailDomain =
+        session.user.email.split("@").pop()?.toLowerCase() ?? "";
+
     const client = await findClient(clientId);
     if (
         !client ||
         client.disabled ||
-        (clientId.endsWith(".corp.sanzi.io") &&
-            !session.user.email.endsWith("@sanzi.io") &&
-            !session.user.email.endsWith("@muisnowdevs.one"))
+        (clientId.endsWith(config.corpClientSuffix) &&
+            !config.corpAllowedEmailDomains.includes(emailDomain))
     ) {
         throw data(
             {
@@ -161,6 +166,9 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
                 logo: client.icon || undefined,
                 scopes: scopeData.validScopes,
                 missing: missingScopes,
+                isServiceAccount: client.clientId.endsWith(
+                    config.serviceClientSuffix
+                ),
             },
             user: {
                 id: session.user.id,
@@ -294,7 +302,7 @@ export default function AuthorizePage() {
                 <CardHeader className="text-center pb-4">
                     <div className="flex items-center mb-2 gap-4 justify-center">
                         <ApplicationIcon
-                            clientId={data.client.id}
+                            isServiceAccount={data.client.isServiceAccount}
                             icon={data.client.logo || null}
                             name={data.client.name}
                         />

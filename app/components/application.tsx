@@ -4,12 +4,13 @@ import { Badge } from "./ui/badge";
 import { useTranslation } from "react-i18next";
 
 interface ApplicationIconProps {
-    clientId: string;
+    /** Computed server-side from the service client suffix config. */
+    isServiceAccount: boolean;
     icon: string | null;
     name: string;
 }
 
-export function ApplicationIcon({ clientId, icon, name }: Readonly<ApplicationIconProps>) {
+export function ApplicationIcon({ isServiceAccount, icon, name }: Readonly<ApplicationIconProps>) {
     const { t } = useTranslation("authorize");
 
     return (
@@ -32,7 +33,7 @@ export function ApplicationIcon({ clientId, icon, name }: Readonly<ApplicationIc
                 </div>
             )}
 
-            {clientId.endsWith(".service.sanzi.io") && <Badge
+            {isServiceAccount && <Badge
                 variant="secondary"
                 className="bg-blue-500 text-white dark:bg-blue-600 absolute bottom-0 right-1/2 transform translate-y-1/2 translate-x-1/2"
             >
