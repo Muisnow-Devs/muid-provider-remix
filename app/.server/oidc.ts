@@ -3,7 +3,7 @@ import Provider, {
     errors,
     KoaContextWithOIDC,
 } from "oidc-provider";
-import RedisAdapter from "./adapters/RedisAdaper";
+import RedisAdapter from "./adapters/RedisAdapter";
 import DatabaseAdapter from "./adapters/DatabaseAdapter";
 import ClientAdapter from "./adapters/ClientAdapter";
 import GrantAdapter from "./adapters/GrantAdapter";
@@ -14,6 +14,8 @@ import { OAuthInteractionInvalidError } from "@/errors/common";
 import { auth } from "./auth";
 import { getEpochTime } from "@/lib/utils";
 import { validateScope } from "./cache/scopes";
+import { verifySecretHash } from "./utils/secretHash";
+import config from "./config";
 
 export const runtime = "nodejs";
 export const OIDC_CLAIMS = {
@@ -23,6 +25,24 @@ export const OIDC_CLAIMS = {
 };
 
 const issuer = process.env.OIDC_ISSUER || "http://localhost:3000";
+
+// Keys used to sign/verify the provider's state cookies (_session,
+// _interaction, _interaction_resume). Without keys those cookies are
+// UNSIGNED and tamperable. OIDC_COOKIE_KEYS is comma-separated: the first
+// key signs new cookies, the remaining keys still verify (key rotation).
+const cookieKeys = (process.env.OIDC_COOKIE_KEYS ?? "")
+    .split(",")
+    .map((key) => key.trim())
+    .filter(Boolean);
+if (cookieKeys.length === 0) {
+    const message =
+        "OIDC_COOKIE_KEYS is not set; OIDC state cookies would be unsigned and tamperable. " +
+        "Set OIDC_COOKIE_KEYS to one or more comma-separated random secrets.";
+    if (process.env.NODE_ENV === "production") {
+        throw new Error(message);
+    }
+    logger.error(message);
+}
 
 // Models that require long-term persistence in database
 const PERSISTENT_MODELS = [
@@ -57,6 +77,24 @@ const configuration: Configuration = {
     // Supported claims
     claims: OIDC_CLAIMS,
 
+    // Client secrets are stored as scrypt hashes, so only auth methods that
+    // work with hashed secret verification are allowed (client_secret_jwt
+    // would require the raw secret for HMAC and must never be offered)
+    clientAuthMethods: ["client_secret_basic", "client_secret_post"],
+
+    // Sign the provider's state cookies (signing turns on automatically
+    // once keys are provided; see the OIDC_COOKIE_KEYS check above).
+    cookies: {
+        keys: cookieKeys,
+    },
+
+    // Require PKCE for ALL clients (the v9 default only requires it for
+    // public clients). S256 is the only code_challenge_method oidc-provider
+    // v9 supports; "plain" is always rejected.
+    pkce: {
+        required: () => true,
+    },
+
     // Supported features
     features: {
         devInteractions: { enabled: false }, // Disable default dev UI
@@ -64,9 +102,13 @@ const configuration: Configuration = {
         introspection: {
             enabled: true,
             allowedPolicy: (ctx, client, token) => {
+                // A client may introspect its own tokens. Additionally,
+                // service accounts (clients whose ID ends with the service
+                // client suffix) are privileged: they may introspect tokens
+                // of other clients.
                 if (
                     client.clientId === token.clientId ||
-                    client.clientId.endsWith(".service.sanzi.io")
+                    client.clientId.endsWith(config.serviceClientSuffix)
                 ) {
                     return true;
                 }
@@ -78,7 +120,7 @@ const configuration: Configuration = {
         resourceIndicators: {
             enabled: true,
             useGrantedResource: () => true,
-            defaultResource: () => "https://api.muisnowdevs.one",
+            defaultResource: () => config.oidcDefaultResource,
             async getResourceServerInfo(ctx, indicator, _client) {
                 if (!indicator)
                     throw new Error("No resource indicator provided");
@@ -108,6 +150,10 @@ const configuration: Configuration = {
         },
     },
 
+    // Issued tokens are NOT bound to the OP session lifetime: access/refresh
+    // tokens stay valid for their own ttl (below) even after the short-lived
+    // Session expires. This is intentional so clients keep working after the
+    // 5-minute OP session ends.
     expiresWithSession: () => false,
     renderError: async (ctx, out, error) => {
         if (error instanceof OAuthInteractionInvalidError) {
@@ -126,14 +172,17 @@ const configuration: Configuration = {
         );
     },
 
+    // Token/artifact lifetimes (seconds). Note the OP Session is deliberately
+    // short (5 minutes) — combined with expiresWithSession: () => false above,
+    // tokens outlive the OP session by design.
     ttl: {
-        Interaction: 10 * 60, // 10 minutes
+        Interaction: 10 * 60, // 10 minutes — time to finish login/consent
         AccessToken: 60 * 60, // 1 hour
-        AuthorizationCode: 10 * 60, // 10 minutes
+        AuthorizationCode: 10 * 60, // 10 minutes — single-use code exchange window
         IdToken: 60 * 60, // 1 hour
         RefreshToken: 27 * 24 * 60 * 60, // 27 days
         DeviceCode: 10 * 60, // 10 minutes
-        Session: 5 * 60,
+        Session: 5 * 60, // 5 minutes — OP session cookie lifetime
     },
 
     findAccount: async (_, id) => getUserInfoByScopes(id),
@@ -204,6 +253,23 @@ async function loadExistingGrant(ctx: KoaContextWithOIDC) {
 }
 
 const provider = new Provider(issuer, configuration);
+
+// Stored client secrets are scrypt hashes (see app/.server/utils/secretHash.ts),
+// so override oidc-provider's default constant-time plaintext comparison with
+// timing-safe hash verification. The call site in lib/shared/client_auth.js
+// awaits this, so the async override covers client_secret_basic,
+// client_secret_post and introspection endpoint authentication.
+(
+    provider.Client.prototype as unknown as {
+        compareClientSecret(actual: string): Promise<boolean>;
+    }
+).compareClientSecret = async function (
+    this: { clientSecret?: string },
+    actual: string
+) {
+    return verifySecretHash(this.clientSecret, actual);
+};
+
 provider.proxy = true;
 provider.on("server_error", (error) => {
     logger.error("OIDC Provider server error:", { error: error.message });

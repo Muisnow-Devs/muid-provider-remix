@@ -1,5 +1,11 @@
 import { Adapter, AdapterPayload } from "oidc-provider";
 import prisma from "../prisma";
+import { ignoreRecordNotFound } from "./shared";
+import {
+    filterOidcScopes,
+    joinScopes,
+    splitScopes,
+} from "../utils/scopes";
 
 /**
  * Grant Adapter for OIDC Provider using Prisma OauthConsent model
@@ -52,7 +58,7 @@ class GrantAdapter implements Adapter {
             });
         }
 
-        return scopes.join(" ");
+        return joinScopes(scopes);
     }
 
     /**
@@ -63,25 +69,19 @@ class GrantAdapter implements Adapter {
             return {};
         }
 
-        const scopes = scopesString.split(" ");
-        const openidScopes = scopes.filter((s) =>
-            [
-                "openid",
-                "profile",
-                "email",
-                "address",
-                "phone",
-                "offline_access",
-            ].includes(s)
-        );
+        const scopes = splitScopes(scopesString);
+        const openidScopes = filterOidcScopes(scopes);
+
+        const defaultResource =
+            process.env.OIDC_DEFAULT_RESOURCE || "https://api.muisnowdevs.one";
 
         return {
             openid: {
-                scope: openidScopes.join(" "),
+                scope: joinScopes(openidScopes),
                 claims: openidScopes,
             },
             resources: {
-                "https://api.muisnowdevs.one": scopes.join(" "),
+                [defaultResource]: joinScopes(scopes),
             },
         };
     }
@@ -151,9 +151,7 @@ class GrantAdapter implements Adapter {
             .delete({
                 where: { id },
             })
-            .catch(() => {
-                /* Ignore if not found */
-            });
+            .catch(ignoreRecordNotFound("GrantAdapter.destroy"));
     }
 
     /**

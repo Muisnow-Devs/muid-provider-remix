@@ -12,10 +12,13 @@ import {
 import prisma from "./prisma";
 import { enqueue } from "./queue/default";
 import emailVerificationTemplate, {
+    EmailAction,
     EmailType,
 } from "./templates/emailVerification";
 import { SocialProviders } from "better-auth/social-providers";
 import { redirectToLogin } from "@/utils";
+import { secondaryStorage } from "./storage";
+import { rateLimitEnv } from "./rateLimit";
 
 const socialProviders: SocialProviders = {
     google: {
@@ -28,7 +31,7 @@ const socialProviders: SocialProviders = {
 export const auth = betterAuth({
     appName: "MuID",
     database: prismaAdapter(prisma, {
-        provider: "postgresql",
+        provider: "mysql",
     }),
     emailAndPassword: {
         enabled: false,
@@ -56,6 +59,67 @@ export const auth = betterAuth({
         emailOTP({ sendVerificationOTP }),
     ],
     secret: process.env.BETTER_AUTH_SECRET!,
+    // Redis-backed storage: used for rate-limit counters (storage defaults to
+    // "secondary-storage" when this is set) and session caching.
+    secondaryStorage,
+    rateLimit: {
+        enabled: true,
+        window: rateLimitEnv("RATE_LIMIT_AUTH_WINDOW", 60),
+        max: rateLimitEnv("RATE_LIMIT_AUTH_MAX", 60),
+        // Paths are relative to the auth base path; first matching rule wins,
+        // so specific paths must come before wildcards.
+        customRules: {
+            // Endpoints that send an email (most abusable)
+            "/email-otp/send-verification-otp": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_OTP_SEND_MAX", 3),
+            },
+            "/forget-password/email-otp": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_OTP_SEND_MAX", 3),
+            },
+            "/send-verification-email": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_OTP_SEND_MAX", 3),
+            },
+            "/delete-user": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_OTP_SEND_MAX", 3),
+            },
+            // OTP verification (brute-forceable codes)
+            "/email-otp/*": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_OTP_VERIFY_MAX", 5),
+            },
+            // Sign-in / sign-up attempts (covers /sign-in/email-otp,
+            // /sign-in/social, /sign-in/username, ...)
+            "/sign-in/*": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_SIGN_IN_MAX", 5),
+            },
+            "/sign-up/*": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_SIGN_IN_MAX", 5),
+            },
+            // Passkey challenge generation / verification
+            "/passkey/generate-authenticate-options": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_PASSKEY_MAX", 10),
+            },
+            "/passkey/generate-register-options": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_PASSKEY_MAX", 10),
+            },
+            "/passkey/verify-authentication": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_PASSKEY_MAX", 10),
+            },
+            "/passkey/verify-registration": {
+                window: 60,
+                max: rateLimitEnv("RATE_LIMIT_PASSKEY_MAX", 10),
+            },
+        },
+    },
     emailVerification: { sendVerificationEmail },
     user: {
         deleteUser: {
@@ -93,6 +157,31 @@ export const auth = betterAuth({
     },
 });
 
+async function enqueueTemplateEmail({
+    to,
+    name,
+    subject,
+    action,
+}: {
+    to: string;
+    name: string;
+    subject: string;
+    action: EmailAction;
+}) {
+    await enqueue({
+        type: "email.sent",
+        payload: {
+            to,
+            subject,
+            body: await emailVerificationTemplate({
+                name,
+                heading: subject,
+                action,
+            }),
+        },
+    });
+}
+
 async function sendDeleteAccountVerification({
     user,
     url,
@@ -100,19 +189,11 @@ async function sendDeleteAccountVerification({
     user: User;
     url: string;
 }) {
-    const name = user.name || user.email.split("@")[0];
-    const subject = "Verify your account deletion";
-    await enqueue({
-        type: "email.sent",
-        payload: {
-            to: user.email,
-            subject,
-            body: await emailVerificationTemplate({
-                name,
-                heading: subject,
-                action: { type: EmailType.Deletion, url },
-            }),
-        },
+    await enqueueTemplateEmail({
+        to: user.email,
+        name: user.name || user.email.split("@")[0],
+        subject: "Verify your account deletion",
+        action: { type: EmailType.Deletion, url },
     });
 }
 
@@ -124,19 +205,11 @@ async function sendVerificationEmail({
     url: string;
     token: string;
 }) {
-    const name = user.name || user.email.split("@")[0];
-    const subject = "Verify your email address";
-    await enqueue({
-        type: "email.sent",
-        payload: {
-            to: user.email,
-            subject,
-            body: await emailVerificationTemplate({
-                name,
-                heading: subject,
-                action: { type: EmailType.Verify, url },
-            }),
-        },
+    await enqueueTemplateEmail({
+        to: user.email,
+        name: user.name || user.email.split("@")[0],
+        subject: "Verify your email address",
+        action: { type: EmailType.Verify, url },
     });
 }
 
@@ -149,19 +222,11 @@ async function sendVerificationOTP({
     otp: string;
     type: "sign-in" | "email-verification" | "forget-password";
 }) {
-    const subject =
-        type === "sign-in" ? "Your login OTP" : "Your verification OTP";
-    await enqueue({
-        type: "email.sent",
-        payload: {
-            to: email,
-            subject,
-            body: await emailVerificationTemplate({
-                name: email,
-                heading: subject,
-                action: { type: EmailType.OTP, otp },
-            }),
-        },
+    await enqueueTemplateEmail({
+        to: email,
+        name: email,
+        subject: type === "sign-in" ? "Your login OTP" : "Your verification OTP",
+        action: { type: EmailType.OTP, otp },
     });
 }
 

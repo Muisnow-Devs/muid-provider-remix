@@ -1,6 +1,5 @@
 import { Worker } from "bullmq";
 import logger from "../logger";
-import { DefaultTask } from "./tasks/DefaultTask";
 import { AppEventMap, AppQueueEvent, QueueNames } from "./tasks/ProcessData";
 import QueueTask from "./tasks/QueueTask";
 import { SendMailTask } from "./tasks/SendMailTask";
@@ -43,7 +42,6 @@ const workers = [
         "user.updated": new InsertTasks(),
         "user.deleted": new InsertTasks(),
         "user.revoked": new InsertTasks(),
-        unknown: new DefaultTask(),
     }),
 ];
 

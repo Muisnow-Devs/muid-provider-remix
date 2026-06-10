@@ -1,7 +1,7 @@
 import { Job } from "bullmq";
 import { AppQueueEvent } from "./ProcessData";
 import QueueTask from "./QueueTask";
-import mailer from "@/.server/mailler";
+import mailer from "@/.server/mailer";
 import logger from "@/.server/logger";
 
 export class SendMailTask extends QueueTask {

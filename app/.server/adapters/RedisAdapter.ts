@@ -2,6 +2,7 @@ import logger from "../logger";
 import prisma from "../prisma";
 import client from "../redis";
 import { Adapter, AdapterPayload } from "oidc-provider";
+import { parseAdapterPayload, withConsumedFlag } from "./shared";
 
 class RedisAdapter implements Adapter {
     private client: typeof client;
@@ -37,7 +38,7 @@ class RedisAdapter implements Adapter {
         const data = await this.client.get(key);
         if (!data) return undefined;
 
-        const payload = JSON.parse(data) as AdapterPayload;
+        const payload = parseAdapterPayload(data);
         if (payload.accountId) {
             const data = await prisma.user.findUnique({
                 where: { id: payload.accountId as string },
@@ -78,10 +79,7 @@ class RedisAdapter implements Adapter {
         const data = await this.find(id);
 
         if (data) {
-            const updatedData = {
-                ...data,
-                consumed: Math.floor(Date.now() / 1000),
-            };
+            const updatedData = withConsumedFlag(data, new Date());
             const ttl = await this.client.ttl(key);
             if (ttl > 0) {
                 await this.client.setex(key, ttl, JSON.stringify(updatedData));
@@ -100,7 +98,7 @@ class RedisAdapter implements Adapter {
         for (const key of keys) {
             const data = await this.client.get(key);
             if (data) {
-                const payload = JSON.parse(data);
+                const payload = parseAdapterPayload(data);
                 if (payload.grantId === grantId) {
                     await this.client.del(key);
                 }

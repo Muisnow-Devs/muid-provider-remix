@@ -2,7 +2,9 @@ import { checkSession } from "@/.server/auth";
 import { findClient } from "@/.server/cache/clients";
 import provider, { loadGrantByUserIdClientId } from "@/.server/oidc";
 import { validateScope } from "@/.server/cache/scopes";
+import { splitScopes } from "@/.server/utils/scopes";
 import { commitCSRFToken, validateCSRFToken } from "@/.server/security";
+import config from "@/.server/config";
 import { ApplicationIcon, ApplicationScopes } from "@/components/application";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,7 +43,13 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
 
     if (id === "error") {
         const url = new URL(request.url);
-        const detail = url.searchParams.get("detail") || "No details provided";
+        // `detail` comes from the oidc-provider renderError redirect and is
+        // attacker-influenceable. It is rendered as plain text by React in
+        // the ErrorBoundary (no dangerouslySetInnerHTML), so there is no XSS
+        // reflection; we still cap its length to keep the page sane.
+        const detail = (
+            url.searchParams.get("detail") || "No details provided"
+        ).slice(0, 500);
         throw data(
             {
                 title: t("authorize:title.error"),
@@ -99,13 +107,17 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
         );
     }
 
+    // Corp clients are restricted to users whose email domain (the part
+    // after "@", compared exactly and case-insensitively) is allowlisted.
+    const emailDomain =
+        session.user.email.split("@").pop()?.toLowerCase() ?? "";
+
     const client = await findClient(clientId);
     if (
         !client ||
         client.disabled ||
-        (clientId.endsWith(".corp.sanzi.io") &&
-            !session.user.email.endsWith("@sanzi.io") &&
-            !session.user.email.endsWith("@muisnowdevs.one"))
+        (clientId.endsWith(config.corpClientSuffix) &&
+            !config.corpAllowedEmailDomains.includes(emailDomain))
     ) {
         throw data(
             {
@@ -116,9 +128,9 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
         );
     }
 
-    const scopes = (
+    const scopes = splitScopes(
         (interaction.params.scope as string) ?? "openid profile email"
-    ).split(" ");
+    );
 
     const scopeData = await validateScope(scopes);
     if (scopeData.invalidScopes?.length) {
@@ -161,6 +173,9 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
                 logo: client.icon || undefined,
                 scopes: scopeData.validScopes,
                 missing: missingScopes,
+                isServiceAccount: client.clientId.endsWith(
+                    config.serviceClientSuffix
+                ),
             },
             user: {
                 id: session.user.id,
@@ -294,7 +309,7 @@ export default function AuthorizePage() {
                 <CardHeader className="text-center pb-4">
                     <div className="flex items-center mb-2 gap-4 justify-center">
                         <ApplicationIcon
-                            clientId={data.client.id}
+                            isServiceAccount={data.client.isServiceAccount}
                             icon={data.client.logo || null}
                             name={data.client.name}
                         />
@@ -377,7 +392,7 @@ export default function AuthorizePage() {
 export function ErrorBoundary() {
     const error = useRouteError();
     const { t } = useTranslation("errors");
-    console.error(error);
+    console.error("Authorize page error boundary caught:", error);
 
     return (
         <AuthPageLayout>
