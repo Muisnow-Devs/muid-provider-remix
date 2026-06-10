@@ -8,6 +8,7 @@ import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
 import { I18nextProvider } from "react-i18next";
 import { getInstance } from "./.server/i18n";
+import { logger } from "./.server/logger";
 
 export const streamTimeout = 5_000;
 
@@ -76,7 +77,10 @@ export default function handleRequest(
                     // errors encountered during initial shell rendering since they'll
                     // reject and get logged in handleDocumentRequest.
                     if (shellRendered) {
-                        console.error(error);
+                        logger.error(
+                            "Streaming render error",
+                            error instanceof Error ? error : { error }
+                        );
                     }
                 },
             }

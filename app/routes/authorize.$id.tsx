@@ -377,7 +377,7 @@ export default function AuthorizePage() {
 export function ErrorBoundary() {
     const error = useRouteError();
     const { t } = useTranslation("errors");
-    console.error(error);
+    console.error("Authorize page error boundary caught:", error);
 
     return (
         <AuthPageLayout>

@@ -72,10 +72,11 @@ npm install
 
 ### Configuration
 
-Copy `.env.example` to `.env` and fill in the values (the `.env.example` template ships
-with the security-hardening PR series; until it lands, create `.env` from the
-[environment variables](#environment-variables) table below). Generate strong secrets
-with:
+Copy [`.env.example`](./.env.example) to `.env` and fill in the values — every
+variable is documented there and in the [environment variables](#environment-variables)
+table below. The server validates the environment at startup (`app/.server/env.ts`)
+and refuses to boot if required variables are missing or if secrets are too short
+or still set to placeholder values. Generate strong secrets with:
 
 ```bash
 openssl rand -hex 32

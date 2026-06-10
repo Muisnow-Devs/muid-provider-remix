@@ -17,7 +17,6 @@ export interface AppEventMap {
         clientId: string;
     };
     "email.sent": { to: string; subject: string; body: string };
-    unknown: unknown;
 }
 
 export interface AppQueueEvent<
