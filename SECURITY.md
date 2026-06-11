@@ -105,7 +105,7 @@ immediately (in-flight authorization flows will restart).
 
 Encrypts stored social-login tokens. Rotating requires re-encrypting existing rows;
 follow the procedure shipped with the hardening PR (re-run
-`scripts/migrate-encrypt-account-tokens.ts` in its re-key mode if provided, or have
+`scripts/migrate-encrypt-account-tokens.mjs` in its re-key mode if provided, or have
 users re-link Google). Do not simply swap the key, or existing tokens become
 undecryptable.
 
@@ -145,7 +145,7 @@ Run these once, in this order, **after** deploying the corresponding PRs:
 1. Deploy the PR that introduces hashed client secrets, then run:
 
    ```bash
-   npx tsx scripts/migrate-hash-client-secrets.ts
+   node scripts/migrate-hash-client-secrets.mjs
    ```
 
    Existing plaintext `clientSecret` values are replaced with scrypt hashes. Record any
@@ -155,7 +155,7 @@ Run these once, in this order, **after** deploying the corresponding PRs:
 2. Deploy the PR that introduces token encryption, set `TOKEN_ENC_KEY`, then run:
 
    ```bash
-   npx tsx scripts/migrate-encrypt-account-tokens.ts
+   node scripts/migrate-encrypt-account-tokens.mjs
    ```
 
    Existing plaintext social-login tokens in the `account` table are encrypted in place.
