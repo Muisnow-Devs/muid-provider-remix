@@ -74,10 +74,6 @@ export const auth = betterAuth({
                 window: 60,
                 max: rateLimitEnv("RATE_LIMIT_OTP_SEND_MAX", 3),
             },
-            "/forget-password/email-otp": {
-                window: 60,
-                max: rateLimitEnv("RATE_LIMIT_OTP_SEND_MAX", 3),
-            },
             "/send-verification-email": {
                 window: 60,
                 max: rateLimitEnv("RATE_LIMIT_OTP_SEND_MAX", 3),
@@ -220,12 +216,13 @@ async function sendVerificationOTP({
 }: {
     email: string;
     otp: string;
-    type: "sign-in" | "email-verification" | "forget-password";
+    type: "sign-in" | "change-email" | "email-verification" | "forget-password";
 }) {
     await enqueueTemplateEmail({
         to: email,
         name: email,
-        subject: type === "sign-in" ? "Your login OTP" : "Your verification OTP",
+        subject:
+            type === "sign-in" ? "Your login OTP" : "Your verification OTP",
         action: { type: EmailType.OTP, otp },
     });
 }
