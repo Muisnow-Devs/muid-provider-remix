@@ -127,8 +127,8 @@ see [SECURITY.md](./SECURITY.md) for the required order):
 
 | Script | Description |
 | --- | --- |
-| `npx tsx scripts/migrate-hash-client-secrets.ts` | Hash existing plaintext OAuth client secrets (scrypt) |
-| `npx tsx scripts/migrate-encrypt-account-tokens.ts` | Encrypt existing social-login tokens at rest (`TOKEN_ENC_KEY`) |
+| `node scripts/migrate-hash-client-secrets.mjs` | Hash existing plaintext OAuth client secrets (scrypt) |
+| `node scripts/migrate-encrypt-account-tokens.mjs` | Encrypt existing social-login tokens at rest (`TOKEN_ENC_KEY`) |
 
 ## Environment Variables
 
