@@ -1,5 +1,11 @@
 # MUID
 
+> This repository is preserved for reference and educational purposes, including for anyone interested in seeing how the site was previously designed and implemented.
+
+This project is the source code of the original MuID system. After being replaced with Logto, it is now useless to me. Therefore, I am leaving this project as a public archive, [as I promised](https://x.com/Hen000000hen/status/2079132927875846364?s=20).
+
+**-- Below is the AI-generated README file --**
+
 MUID is a self-hosted **Identity Provider (IdP)** that combines
 [better-auth](https://better-auth.com) (first-party authentication: passkeys, Google
 sign-in, email OTP) with [panva oidc-provider](https://github.com/panva/node-oidc-provider)
@@ -259,6 +265,10 @@ vulnerabilities.
 ## Styling
 
 This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
+
+## Licenses
+
+Even though this is a public archive, this project is still distributed under MIT License. Read more at [LICENSE](LICENSE).
 
 ---
 
